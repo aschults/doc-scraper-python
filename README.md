@@ -1,17 +1,24 @@
-# Doc Scraper 
+# Doc Scraper
 
-Python modules supporting the extraction of semi-structured data from Google Docs
-to make it available in structured or table form.
+Python modules and script supporting the extraction of semi-structured data from
+Google Docs to make it available in structured or tabular form.
 
-Example:
+It starts from the experience that information is more easily managed in a document
+vs. a sheet or table, particularly if some base structure or template is provided
+when filling in the details. Unfortunately, extraction of the information often needs
+to be done manually as the original structure of a (Google) Doc is not trivial to navigate
+and find information. Doc scraper aims to close this gap by providing tools to simplify
+a the structure of documents and making them easy to filter and extract the needed information.
+Here some [use cases](docs/use_cases.md) to make the goal more tangible.
 
-Multiple teams copy and fill in the same Google Docs template. The template
-requires information to be filled into some table, repeated for multiple items,
-each under a separate subsection.
+## Usage
 
-Doc Scraper will simplify the extraction of heading/section titles and the relevant 
-cells in each section to get to a simple table, one record per section.
- 
+Doc scraper can be used as library (check module `doc_scraper.pipeline`) and as script
+(`doc_extract.py`). The script basically configures a pipeline using a YAML config and
+then executes the pipeline. Here an example [config](docs/sample_config.yaml).
+
+The script then is started as `extract_docs.py --config=docs/sample_config.yaml`.
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
