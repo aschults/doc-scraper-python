@@ -1,0 +1,30 @@
+sources:
+- kind: google_doc_html
+  config:
+    #doc_ids:
+    ## Added from command line args
+    #- xxxxx
+    #- yyyy
+transformations:
+- kind: nest_bullets
+- kind: tag_by_style
+  config:
+    tag_key: blah
+    matcher:
+      rules:
+      - tag: 'highlighted'
+        include:
+        - backgorund-color: #ff0000
+        exclude:
+        - font-weight: bold
+- kind: merge_by_tag
+  config: 
+    acceptable_tag_sets: 
+    - ['a']
+    - ['b', 'highlight']
+    rejeding_tags: ['xx']
+- kind: strip_elements
+  config:
+    remove_style_rules_re: ['.*']
+outputs:
+- kind: stdout

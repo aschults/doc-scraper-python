@@ -1,0 +1,6 @@
+creds.json
+__pycache__
+*.pyc
+.pytest_cache
+client_secret.json
+credentials.json

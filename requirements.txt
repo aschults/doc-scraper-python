@@ -1,0 +1,9 @@
+google_auth_oauthlib
+google-api-python-client
+python-dateutil
+absl-py
+parameterized
+google-api-python-client-stubs
+dacite
+pyfakefs
+types-mock

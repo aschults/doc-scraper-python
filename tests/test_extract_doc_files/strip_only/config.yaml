@@ -1,0 +1,14 @@
+sources:
+- kind: doc_files
+  config:
+    doc_filenames:
+    - data.html
+transformations:
+- kind: strip_elements
+  config:
+    remove_style_rules_re: ['.*']
+outputs:
+- kind: stdout
+- kind: single_file
+  config:
+    output_file: /result.json
