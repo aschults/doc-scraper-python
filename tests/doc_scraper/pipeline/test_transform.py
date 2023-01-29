@@ -68,7 +68,8 @@ class TestBuilder(unittest.TestCase):
         """Test registration with type hint in builder function."""
         bld = transforms.TransformBuilder()
 
-        def transform_builder(config: int) -> doc_transform.TransformationFunction:
+        def transform_builder(
+                config: int) -> doc_transform.TransformationFunction:
             return lambda b: doc_struct.Element(
                 attrs={'y': str(config) + b.attrs['y'] + 'b'})
 
@@ -82,11 +83,13 @@ class TestBuilder(unittest.TestCase):
         """Test the creation of chained transformations."""
         bld = transforms.TransformBuilder()
 
-        def transform_func1(config: int) -> doc_transform.TransformationFunction:
+        def transform_func1(
+                config: int) -> doc_transform.TransformationFunction:
             return lambda b: doc_struct.Element(
                 attrs={'y': str(config) + b.attrs['y'] + 'b'})
 
-        def transform_func2(config: int) -> doc_transform.TransformationFunction:
+        def transform_func2(
+                config: int) -> doc_transform.TransformationFunction:
             return lambda b: doc_struct.Element(
                 attrs={'y': str(config) + b.attrs['y'] + 'c'})
 
