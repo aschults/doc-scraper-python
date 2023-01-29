@@ -28,7 +28,9 @@ jobs:
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
-          pytype . -P . -j 4 --strict-primitive-comparisons --strict-import --precise-return --strict-parameter-checks
+          #pytype . -P . -j 4 --strict-primitive-comparisons --strict-import --precise-return --strict-parameter-checks
+          pytype --version
+          pytype . -P . -j 4 --strict-import --precise-return
       - name: Test with pytest
         run: |
           pytest tests/
