@@ -1,0 +1,32 @@
+{
+    "python.linting.banditEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": false,
+    "python.linting.prospectorEnabled": false,
+    "python.linting.pycodestyleEnabled": true,
+    "python.linting.pydocstyleEnabled": true,
+    "python.linting.pylamaEnabled": false,
+    "python.linting.pylintEnabled": true,
+    "python.formatting.provider": "yapf",
+    "python.formatting.autopep8Args": [
+        "--max-line-length",
+        "79",
+        "-a",
+        "-a",
+        "-a"
+    ],
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.analysis.typeCheckingMode": "strict",
+    "python.testing.cwd": "${workspaceFolder}",
+    "python.formatting.yapfArgs": [
+        "--style={based_on_style: google, column_limit: 79, indent_width: 4}"
+    ],
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.variableTypes": true,
+    "pythonTestExplorer.testFramework": "pytest",
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+}
