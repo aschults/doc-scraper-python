@@ -296,11 +296,12 @@ class TestTagMergePolicy(unittest.TestCase):
         policy = paragraph_basic.TagMergePolicy(config)
 
         self.assertTrue(policy._is_matching(first, second))  # type: ignore
-        self.assertEqual(merged_text,
-                         policy._create_merged(  # type: ignore
-                             first,
-                             second,
-                         ).as_plain_text())
+        self.assertEqual(
+            merged_text,
+            policy._create_merged(  # type: ignore
+                first,
+                second,
+            ).as_plain_text())
 
     @parameterized.expand([  # type: ignore
         (

@@ -39,7 +39,6 @@ General concepts:
     stored information to a doc_struc.Element tree.
 """
 
-
 from ._extractor import ToStructParser
 
 _ = [ToStructParser]

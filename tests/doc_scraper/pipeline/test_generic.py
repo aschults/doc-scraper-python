@@ -139,7 +139,7 @@ class TestGenericBuilder(unittest.TestCase):
         self.assertEqual(23, self.builder.create_instance('x', {'attr_a': 22}))
 
     def test_convert_dict_optional_none(self):
-        """Test construction of the config from dict."""
+        """Test construction of the config from dict, passing None."""
 
         def builder_func(config: Optional[SampleConfig]) -> int:
             if config is None:

@@ -43,7 +43,8 @@ class NodeTest(unittest.TestCase):
         context = _base.ParseContext()
         node = _base.Frame(context, {'k': 'val'}, {'s': '111'})
 
-        self.assertEqual(node, _base.Frame(context, {'k': 'val'}, {'s': '111'}))
+        self.assertEqual(node, _base.Frame(context, {'k': 'val'},
+                                           {'s': '111'}))
         self.assertNotEqual(node, _base.Frame(context, {}, {'s': '111'}))
         self.assertNotEqual(node,
                             _base.Frame(context, {'k': 'val'}, {'s': '222'}))

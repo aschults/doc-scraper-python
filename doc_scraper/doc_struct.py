@@ -1,6 +1,7 @@
 """Classes to describe a document with a simplified structure.
 
-Based on https://developers.google.com/docs/api/reference/rest/v1/documents#Document
+Based on
+https://developers.google.com/docs/api/reference/rest/v1/documents#Document
 with better subclassing and only relevant classes implemented.
 
 doc_struct instances are usually created when loading and parsing docs and then

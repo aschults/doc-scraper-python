@@ -123,6 +123,19 @@ class _BuilderData(Generic[_T]):
 
         self._help_doc = help_doc
 
+    def _get_arg_type(self) -> Optional[Type[object]]:
+        """Get the arg type, considering optional types."""
+        arg_type = self.config_type
+
+        if get_origin(arg_type) is Union:
+            # Take the first non-None arg
+            union_args: Sequence[Type[object]] = get_args(arg_type)
+            for union_arg in union_args:
+                if union_arg is not type(None):  # noqa: E721
+                    arg_type = union_arg
+                    break
+        return arg_type
+
     def __call__(self, arg: Any) -> _T:
         """Handle argument details then call the original build function."""
         if not self.has_arg:
@@ -130,19 +143,11 @@ class _BuilderData(Generic[_T]):
                 raise TypeError(f'Does not accept args: {self.build_func}')
             return self.build_func()
 
-        if self.config_type is None:
+        arg_type = self._get_arg_type()
+
+        if arg_type is None:
             # No better information available, just call
             return self.build_func(arg)
-
-        arg_type = self.config_type
-
-        if get_origin(arg_type) is Union:
-            # Take the first non-None arg
-            union_args: Sequence[Type[object]] = get_args(arg_type)
-            for union_arg in union_args:
-                if union_arg is not type(None):  # nopep8
-                    arg_type = union_arg
-                    break
 
         if isinstance(arg, dict):
             arg = dacite.from_dict(
@@ -155,7 +160,7 @@ class _BuilderData(Generic[_T]):
             if self.default_factory:
                 arg = self.default_factory()
 
-        if not isinstance(arg, self.config_type):
+        if arg is not None and not isinstance(arg, arg_type):
             raise TypeError(f'Expected type {self.config_type} for' +
                             f' {self.build_func}. Got {arg}')
 

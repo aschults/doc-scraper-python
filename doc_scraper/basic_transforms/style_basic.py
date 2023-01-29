@@ -158,11 +158,10 @@ class TaggingConfig():
 class TaggingTransform(doc_transform.Transformation):
     """Tag objects based on matched criteria."""
 
-    def __init__(
-            self,
-            context: Optional[doc_transform.TransformationContext] = None,
-            tag_key: str = 'tags',
-            matcher: Optional[StyleMatcher] = None):
+    def __init__(self,
+                 context: Optional[doc_transform.TransformationContext] = None,
+                 tag_key: str = 'tags',
+                 matcher: Optional[StyleMatcher] = None):
         """Construct an instance.
 
         Args:

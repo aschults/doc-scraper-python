@@ -41,9 +41,7 @@ class TestStripElements(unittest.TestCase):
     def test_empty_lists(self):
         """Test with empty config."""
         transform = elements_basics.StripElementsTransform(
-            remove_attrs_re=[],
-            remove_styles_re=[],
-            remove_style_rules_re=[])
+            remove_attrs_re=[], remove_styles_re=[], remove_style_rules_re=[])
 
         data = doc_struct.SharedData(
             attrs={

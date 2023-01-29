@@ -7,7 +7,6 @@ from typing import Any, Optional, Sequence, Union
 from doc_scraper.basic_transforms import bullets_basic
 from doc_scraper import doc_struct
 
-
 _nest_items = bullets_basic._nest_items  # type: ignore
 _merge_bullet_lists = bullets_basic._merge_bullet_lists  # type: ignore
 

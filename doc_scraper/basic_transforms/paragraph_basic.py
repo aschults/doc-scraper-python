@@ -289,10 +289,9 @@ class TagMergePolicy():
             else:
                 new_elements = list(first.elements) + [second]
             return dataclasses.replace(first, elements=new_elements)
-        elif isinstance(
-                first, (doc_struct.Chip, doc_struct.Link)) and isinstance(
-                    second,
-                    (doc_struct.Chip, doc_struct.Link)):
+        elif isinstance(first,
+                        (doc_struct.Chip, doc_struct.Link)) and isinstance(
+                            second, (doc_struct.Chip, doc_struct.Link)):
             return dataclasses.replace(first, text=first.text + second.text)
         else:
             return doc_struct.TextRun(attrs=first.attrs,

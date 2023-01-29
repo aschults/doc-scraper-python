@@ -17,14 +17,11 @@ from absl import flags  # type: ignore
 
 from doc_scraper.pipeline import pipeline
 
-
 CONFIG_FILE_FLAG: flags.FlagHolder[str] = flags.DEFINE_string(  # type:ignore
     'config', None, 'Config YAML file')
 
-
 DUMP_SAMPLE_FLAG: flags.FlagHolder[bool] = flags.DEFINE_bool(  # type:ignore
     'config_sample', False, 'Dump sample config')
-
 
 CONFIG_MISSING_ERROR = 'Need to provide config file (--config)'
 
