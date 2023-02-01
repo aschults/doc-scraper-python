@@ -175,7 +175,7 @@ class TagMergeConfig():
         metadata={
             'help_docs':
                 'The key in `attrs` under which the set of tags is stored.',
-            'help_samples': [('Default', 'tags'),]
+            'help_samples': [('Default', 'tags')]
         })
 
     merge_as_text_run: bool = dataclasses.field(
@@ -183,7 +183,7 @@ class TagMergeConfig():
         metadata={
             'help_docs':
                 'If the element resulting of a merge always is a text run.',
-            'help_samples': [('Default', False),]
+            'help_samples': [('Default', False)]
         })
 
     element_types: Sequence[Type[doc_struct.Element]] = dataclasses.field(
@@ -216,7 +216,7 @@ class TagMergeConfig():
             'help_text':
                 'Tags that stop any match if present.',
             'help_samples': [('No Elements tagged with X will get merged.',
-                              help_docs.RawSample('["X"]')),]
+                              help_docs.RawSample('["X"]'))]
         })
 
 
