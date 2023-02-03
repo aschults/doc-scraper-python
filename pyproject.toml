@@ -17,6 +17,9 @@ readme = "README.md"
 requires-python = ">=3.7"
 keywords = ["one", "two"]
 
+[build-system]
+requires = ["setuptools>=40.8.0", "wheel"]
+
 [tool.setuptools.packages.find]
 include = ["doc_scraper*", "extract_doc*"]
 exclude = ["tests"] 
