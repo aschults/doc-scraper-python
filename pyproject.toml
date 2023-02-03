@@ -1,0 +1,44 @@
+[project]
+name = "doc_scraper"
+version = "0.1.0"
+dependencies = [
+    "google_auth_oauthlib",
+    "google-api-python-client",
+    "python-dateutil",
+    "absl-py",
+    "google-api-python-client-stubs",
+    "dacite",
+]
+authors = [
+    {name = "Anton Schultschik", email = "aschults@gmx.net"},
+]
+description = "Structured data extraction for documents"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["one", "two"]
+
+[tool.setuptools.packages.find]
+include = ["doc_scraper*", "extract_doc*"]
+exclude = ["tests"] 
+
+[project.scripts]
+cli-name = "doc_scraper.extract_doc:app_main"
+
+[project.optional-dependencies]
+testing = [
+    "coverage>=5.0.3",
+    "pytest",
+    "parameterized",
+    "pyfakefs",
+    "types-mock",
+    "pytest-pythonpath",
+]
+
+[tool.pytest.ini_options]
+python_paths=["."]
+
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]

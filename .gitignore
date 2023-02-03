@@ -4,3 +4,5 @@ __pycache__
 .pytest_cache
 client_secret.json
 credentials.json
+dist
+doc_scraper.egg-info

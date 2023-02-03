@@ -1,0 +1,11 @@
+build
+flake8 
+pytype
+pytest
+pytest-pythonpath
+
+parameterized
+pyfakefs
+types-mock
+
+-r requirements.txt

@@ -44,10 +44,13 @@ def main(argv: List[str]):
     pipeline_instance()
 
 
+def app_main():
+    app.run(main)  # type: ignore
+
+
 if __name__ == '__main__':
     app.run(main)  # type: ignore
 
-# TODO: Move out of src
 # TODO: Add example execution (doc Screenshot) -- Resultin JSON
 # TODO: JSON... Order of keys... _ first?
 # TODO: Permissions on creds files.

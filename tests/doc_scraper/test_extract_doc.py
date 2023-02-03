@@ -5,7 +5,7 @@ import os
 from absl.testing import flagsaver  # type: ignore
 from pyfakefs import fake_filesystem_unittest  # type: ignore
 
-import extract_doc
+import doc_scraper.extract_doc as extract_doc
 
 
 class ExtractDocTest(fake_filesystem_unittest.TestCase):
