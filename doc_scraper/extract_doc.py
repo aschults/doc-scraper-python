@@ -9,7 +9,7 @@ The pipeline is configured through a YAML file (see --config).
 A fully documented sample config can be obtained (use --config_sample).
 
 """
-from typing import List
+from typing import Sequence
 import logging
 
 from absl import app  # type: ignore
@@ -26,7 +26,7 @@ DUMP_SAMPLE_FLAG: flags.FlagHolder[bool] = flags.DEFINE_bool(  # type:ignore
 CONFIG_MISSING_ERROR = 'Need to provide config file (--config)'
 
 
-def main(argv: List[str]):
+def main(argv: Sequence[str]):
     """Fetch a Google Document and convert to JSON."""
     logging.basicConfig(level=logging.INFO)
 
