@@ -8,7 +8,7 @@ from typing import (Iterable, Iterator, List, Optional, Sequence)
 
 from doc_scraper import doc_struct
 from doc_scraper import html_extractor
-from doc_scraper.doc_loader import DocDownloader
+from doc_scraper import doc_loader
 from doc_scraper import help_docs
 
 from . import generic
@@ -35,23 +35,41 @@ class DocLoaderConfig():
                     '- "1HZUlXXXXXX_SAMPLE2_XXXXXXIAQOa-xx9XxXx-xXxx"')
             ],
         })
+    username: str = dataclasses.field(
+        default='',
+        metadata={
+            'help_text':
+                'Google account username (as email), incl. service accounts.',
+            'help_samples':
+                'someone@gmail.com',
+        })
 
 
 class DocLoader(SourceType, generic.CmdLineInjectable):
     """Download docs from Google Drive/Docs."""
 
-    def __init__(self,
-                 doc_ids: Optional[List[str]] = None,
-                 doc_downloader: Optional[DocDownloader] = None) -> None:
+    def __init__(
+        self,
+        doc_ids: Optional[List[str]] = None,
+        downloader_or_creds: doc_loader.DocDownloader |
+        doc_loader.Credentials | None = None
+    ) -> None:
         """Create an instance.
 
         Args:
             doc_ids: IDs of docs to fetch. Default: []. The list can be
                 extended using set_commandline_args().
-            doc_downloader: Mainly for testing purpose to mock the download.
+            doc_downloader_or_creds: Pass down DocDownloader itself, or
+                credentials required to set up one.
         """
         self._doc_ids: List[str] = doc_ids or []
-        self._doc_downloader: DocDownloader = doc_downloader or DocDownloader()
+        if isinstance(downloader_or_creds, doc_loader.DocDownloader):
+            self._doc_downloader = downloader_or_creds
+        elif isinstance(downloader_or_creds, doc_loader.Credentials):
+            self._doc_downloader = doc_loader.DocDownloader(
+                creds=downloader_or_creds)
+        else:
+            self._doc_downloader = doc_loader.DocDownloader()
 
     def set_commandline_args(self, *args: str, **kwargs: str) -> None:
         """Add doc ids specified on command-line.
@@ -71,11 +89,25 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
             yield document
 
     @classmethod
-    def from_config(cls, config: Optional[DocLoaderConfig]) -> 'DocLoader':
-        """Build an instance from config."""
+    def from_config(
+        cls,
+        config: Optional[DocLoaderConfig],
+        creds_store: doc_loader.CredentialsStore,
+    ) -> 'DocLoader':
+        """Build an instance from config.
+
+        Args:
+            config: Configuration containing document IDs to fetch as well as
+                the user under which to access.
+            creds_store:
+                Credentials needed to access Google Docs.
+        """
         if config is None:
             config = DocLoaderConfig()
-        return DocLoader(doc_ids=list(config.doc_ids))
+        creds = creds_store.from_username(config.username)
+
+        return DocLoader(doc_ids=list(config.doc_ids),
+                         downloader_or_creds=creds)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -140,16 +172,29 @@ class SourceBuilder(generic.GenericBuilder[SourceType]):
     def create_chain(
             self, *config_data: SourceConfig) -> Iterator[doc_struct.Document]:
         """Create an iterator that goes through multiple sources."""
-        iterables = [self.create_instance(config) for config in config_data]
+        iterables = [
+            self.create_instance(config) for config in list(config_data)
+        ]
         return itertools.chain(*iterables)
 
 
-def get_default_builder() -> SourceBuilder:
-    """Create a source builder with pre-registered source types."""
+def get_default_builder(
+    credentials_store: Optional[doc_loader.CredentialsStore] = None
+) -> SourceBuilder:
+    """Create a source builder with pre-registered source types.
+
+    Args:
+        credentials_store: Storage for Google credentials, to access
+            Google Docs.
+    """
+    if credentials_store is None:
+        credentials_store = doc_loader.CredentialsStore()
+        credentials_store.add_available_credentials()
     default_builder = SourceBuilder()
     default_builder.register(
         'google_doc_html',
-        DocLoader.from_config,
+        lambda config: DocLoader.from_config(config, credentials_store),
+        DocLoaderConfig,
         help_doc='Load from Google Drive API as exported HTML.')
     default_builder.register('doc_files',
                              FileLoader.from_config,

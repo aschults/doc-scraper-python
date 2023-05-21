@@ -8,6 +8,7 @@ import dacite
 import yaml
 
 from doc_scraper import help_docs
+from doc_scraper import doc_loader
 
 from . import transforms
 from . import sources
@@ -43,18 +44,28 @@ class Pipeline():
 class PipelineBuilder(generic.CmdLineInjectable):
     """Build a pipeline from builders of their parts."""
 
-    def __init__(self,
-                 source_builder: Optional[sources.SourceBuilder] = None,
-                 transform_builder: Optional[
-                     transforms.TransformBuilder] = None,
-                 sink_builder: Optional[sinks.SinkBuilder] = None) -> None:
+    def __init__(
+        self,
+        source_builder: Optional[sources.SourceBuilder] = None,
+        transform_builder: Optional[transforms.TransformBuilder] = None,
+        sink_builder: Optional[sinks.SinkBuilder] = None,
+        credentials_store: Optional[doc_loader.CredentialsStore] = None
+    ) -> None:
         """Construct an instance.
 
-        If *_builder arguments are not passed, use the get_default_builder
-        function in the corresponding modules.
+        If arguments are not passed, default instances are used.
+        For Builders, the get_default_builder corresponding to their module
+        is used. The Credentials store is created and
+        add_available_credentials() called to load available credentials.
         """
+        if credentials_store is None:
+            credentials_store = doc_loader.CredentialsStore()
+            credentials_store.add_available_credentials()
+        self.credentials_store: doc_loader.CredentialsStore = credentials_store
+
         if source_builder is None:
-            source_builder = sources.get_default_builder()
+            source_builder = sources.get_default_builder(
+                self.credentials_store)
         if transform_builder is None:
             transform_builder = transforms.get_default_builder()
         if sink_builder is None:

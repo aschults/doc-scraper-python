@@ -3,7 +3,7 @@
 import dataclasses
 import unittest
 from unittest import mock
-from typing import Type
+from typing import Type, Any
 
 from pyfakefs import fake_filesystem_unittest  # type: ignore
 
@@ -103,14 +103,43 @@ class TestSources(fake_filesystem_unittest.TestCase):
 
     def test_doc_downloader(self):
         """Test parsing doc usind downloader."""
-        mock_downloader = mock.Mock(spec=doc_loader.DocDownloader)
+        mock_downloader: Any = mock.Mock(spec=doc_loader.DocDownloader)
         mock_downloader.get_from_html.side_effect = [  # type: ignore
             _create_dummy_doc(tag) for tag in ('t1', 't2')
         ]
         loader = sources.DocLoader(doc_ids=['id1'],
-                                   doc_downloader=mock_downloader)
+                                   downloader_or_creds=mock_downloader)
         loader.set_commandline_args('id2')
 
         result = [_get_doc_tag(doc) for doc in loader]
 
         self.assertEqual(['t1', 't2'], result)
+
+    def test_doc_downloader_by_config(self):
+        """Test parsing doc usind downloader."""
+        mock_creds = mock.Mock(spec=doc_loader.Credentials)
+        creds_store = doc_loader.CredentialsStore()
+        creds_store.add_credentials(mock_creds, 'someone')
+
+        init_method_name = 'doc_scraper.doc_loader.DocDownloader.__init__'
+        with mock.patch(init_method_name) as getter_patch:
+            getter_patch.return_value = None
+            config = sources.DocLoaderConfig(doc_ids=['id1'],
+                                             username='someone')
+            sources.DocLoader.from_config(config, creds_store)
+
+            getter_patch.assert_called_once_with(creds=mock_creds)
+
+    def test_doc_downloader_by_config_default_user(self):
+        """Test parsing doc usind downloader."""
+        mock_creds = mock.Mock(spec=doc_loader.Credentials)
+        creds_store = doc_loader.CredentialsStore()
+        creds_store.add_credentials(mock_creds, 'someone', make_default=True)
+
+        init_method_name = 'doc_scraper.doc_loader.DocDownloader.__init__'
+        with mock.patch(init_method_name) as getter_patch:
+            getter_patch.return_value = None
+            config = sources.DocLoaderConfig(doc_ids=['id1'])
+            sources.DocLoader.from_config(config, creds_store)
+
+            getter_patch.assert_called_once_with(creds=mock_creds)
