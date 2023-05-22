@@ -65,7 +65,7 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
         self._doc_ids: List[str] = doc_ids or []
         if isinstance(downloader_or_creds, doc_loader.DocDownloader):
             self._doc_downloader = downloader_or_creds
-        elif isinstance(downloader_or_creds, doc_loader.Credentials):
+        elif downloader_or_creds is not None:
             self._doc_downloader = doc_loader.DocDownloader(
                 creds=downloader_or_creds)
         else:
