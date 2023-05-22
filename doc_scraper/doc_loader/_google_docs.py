@@ -18,6 +18,9 @@ from . import _auth
 class DocDownloader():
     """Download Google Docs and convert them to doc_struct."""
 
+    # API Key, for use with the API client
+    developer_key: Optional[str] = None
+
     def __init__(self,
                  creds: Optional[auth_credentials.Credentials] = None) -> None:
         """Create an instance.
@@ -30,7 +33,10 @@ class DocDownloader():
     def get_json(self, doc_id: str) -> Any:
         """Get the doc as native JSON."""
         # pylint: disable=no-member
-        docs_service = discovery.build('docs', 'v1', credentials=self._creds)
+        docs_service = discovery.build('docs',
+                                       'v1',
+                                       credentials=self._creds,
+                                       developerKey=self.developer_key)
         req: http.HttpRequest = docs_service.documents().get(documentId=doc_id)
         resp = req.execute()
         return resp
@@ -43,7 +49,8 @@ class DocDownloader():
         mime_type = "text/html"
         docs_service: Any = discovery.build('drive',
                                             'v3',
-                                            credentials=self._creds)
+                                            credentials=self._creds,
+                                            developerKey=self.developer_key)
         req: http.HttpRequest = docs_service.files().export_media(
             fileId=doc_id, mimeType=mime_type)
         resp = req.execute()
