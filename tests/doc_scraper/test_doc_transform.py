@@ -68,6 +68,38 @@ class AppendTextTransform(doc_transform.Transformation):
         return text
 
 
+class SimpleNotesTransform(doc_transform.Transformation):
+    """Add a style to the notes appendix and an index to each element."""
+
+    def _transform_notes_appendix(
+            self, notes_appendix: doc_struct.NotesAppendix
+    ) -> doc_struct.NotesAppendix:
+        """Add mark to the notes appendix."""
+        notes_appendix = dataclasses.replace(notes_appendix,
+                                             style=dict(notes_appendix.style,
+                                                        mark2='modified'))
+        return super()._transform_notes_appendix(notes_appendix)
+
+    def _transform_note_item(
+            self, index: int,
+            paragraph: doc_struct.Paragraph) -> Optional[doc_struct.Paragraph]:
+        return dataclasses.replace(paragraph, attrs={'index': index})
+
+
+class SimpleReferenceTransform(doc_transform.Transformation):
+    """Change the link and id of references and targets."""
+
+    def _transform_reference(
+            self, ref: doc_struct.Reference) -> doc_struct.Reference:
+        return super()._transform_reference(ref)
+
+    def _transform_reference_id(self, ref_id: str) -> str:
+        return ref_id + '_another'
+
+    def _transform_link_url(self, url: Optional[str]) -> Optional[str]:
+        return (url or '') + '_something'
+
+
 class BulletItemModifyTransform(SimpleChipTransform):
     """Transform nested bullet items.
 
@@ -339,6 +371,32 @@ class TransformationTest(unittest.TestCase):
                 doc_struct.Chip(text='zzz', url='a'),
             ]),
             SimpleChipTransform(),
+        ),
+        (
+            'Simple note appendix',
+            doc_struct.NotesAppendix(elements=[
+                doc_struct.Paragraph(elements=[]),
+                doc_struct.Paragraph(elements=[]),
+            ]),
+            doc_struct.NotesAppendix(
+                style={'mark2': 'modified'},
+                elements=[
+                    doc_struct.Paragraph(attrs={'index': 0}, elements=[]),
+                    doc_struct.Paragraph(attrs={'index': 1}, elements=[]),
+                ]),
+            SimpleNotesTransform(),
+        ),
+        (
+            'Simple reference and target',
+            doc_struct.Paragraph(elements=[
+                doc_struct.Reference(text='yyy', url='http://link'),
+                doc_struct.ReferenceTarget(text='zzz', ref_id='#here'),
+            ]),
+            doc_struct.Paragraph(elements=[
+                doc_struct.Reference(text='yyy', url='http://link_something'),
+                doc_struct.ReferenceTarget(text='zzz', ref_id='#here_another'),
+            ]),
+            SimpleReferenceTransform(),
         ),
         (
             'Nested bullets test',

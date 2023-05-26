@@ -172,6 +172,35 @@ class ParagraphTest(unittest.TestCase):
             paragraph.handle_start('span', {'style': chip_style_str}),
             _paragraph_elements.ParagraphElementFrame)
 
+        self.assertIsInstance(paragraph.handle_start('sup', {}),
+                              _paragraph_elements.SuperscriptFrame)
+        self.assertIsInstance(paragraph.handle_start('a', {}),
+                              _paragraph_elements.PlainAnchorFrame)
+
+
+class NotesTest(unittest.TestCase):
+    """Test notes appendix extraction."""
+
+    def test_simple_heading(self):
+        """Test simple notes extraction."""
+        context = _base.ParseContext()
+        notes = _structural_elements.NotesFrame(context, {'k': 'val'})
+
+        self.assertIsNotNone(notes.handle_start('p', {'x': 2}))
+
+        self.assertEqual(
+            doc_struct.NotesAppendix(
+                attrs={'k': 'val'},
+                elements=[doc_struct.Paragraph(attrs={'x': 2}, elements=[])],
+            ), notes.to_struct())
+
+    def test_end_tag(self):
+        """Test to ensure that ending paragraph tags cause context update."""
+        context = _base.ParseContext()
+        notes = _structural_elements.NotesFrame(context)
+
+        self.assertEqual(notes, notes.handle_end('div'))
+
 
 class HeadingTest(unittest.TestCase):
     """Test heading extraction."""

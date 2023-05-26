@@ -176,6 +176,46 @@ class Chip(ParagraphElement):
 
 
 @dataclass(frozen=True, kw_only=True, eq=True)
+class Reference(ParagraphElement):
+    """Represent a referemce, like footnote or comment.
+
+    Attributes:
+        text: Actual text displayed as part of the reference.
+        url: Reference to the target.
+    """
+
+    text: str
+    url: str
+
+    def as_plain_text(self) -> str:
+        """Convert element to plain text."""
+        result = f'{self.text}'
+        if self.url:
+            result += f'({self.url})'
+        return result
+
+
+@dataclass(frozen=True, kw_only=True, eq=True)
+class ReferenceTarget(ParagraphElement):
+    """Represent the target of a referemce.
+
+    Attributes:
+        text: Actual text displayed as part of the reference.
+        ref_id: Id to use when referring to this element.
+    """
+
+    text: str
+    ref_id: str
+
+    def as_plain_text(self) -> str:
+        """Convert element to plain text."""
+        result = f'{self.text}'
+        if self.ref_id:
+            result += f'{{#{self.ref_id}}}'
+        return result
+
+
+@dataclass(frozen=True, kw_only=True, eq=True)
 class StructuralElement(Element):
     """Common base for all items that add structure/blocks.
 
@@ -247,6 +287,17 @@ class Paragraph(StructuralElement):
     """
 
     elements: Sequence[ParagraphElement]
+
+
+@dataclass(frozen=True, kw_only=True, eq=True)
+class NotesAppendix(StructuralElement):
+    """Appendix containing all notes and comments.
+
+    Attributes:
+        elements: List of paragraphs, representing notes.
+    """
+
+    elements: Sequence[Paragraph]
 
 
 @dataclass(frozen=True, kw_only=True, eq=True)

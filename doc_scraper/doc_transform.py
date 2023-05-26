@@ -169,6 +169,23 @@ class _ParagraphElementTransformation(_TransformationBase):
         new_url = self._transform_chip_url(chip.url)
         return dataclasses.replace(chip, url=new_url)
 
+    def _transform_reference(
+            self, ref: doc_struct.Reference) -> doc_struct.Reference:
+        """Transform a reference."""
+        new_url = self._transform_link_url(ref.url)
+        return dataclasses.replace(ref, url=new_url)
+
+    def _transform_reference_id(self, ref_id: str) -> str:
+        """Transform the ID of the reference."""
+        return ref_id
+
+    def _transform_reference_target(
+            self,
+            ref: doc_struct.ReferenceTarget) -> doc_struct.ReferenceTarget:
+        """Transform a reference."""
+        new_id = self._transform_reference_id(ref.ref_id)
+        return dataclasses.replace(ref, ref_id=new_id)
+
     def _transform_link_url(self, url: Optional[str]) -> Optional[str]:
         """Transform the URL of a link."""
         return url
@@ -229,6 +246,10 @@ class _ParagraphElementTransformation(_TransformationBase):
             return self._transform_link(paragraph_element)
         if isinstance(paragraph_element, doc_struct.Chip):
             return self._transform_chip(paragraph_element)
+        if isinstance(paragraph_element, doc_struct.Reference):
+            return self._transform_reference(paragraph_element)
+        if isinstance(paragraph_element, doc_struct.ReferenceTarget):
+            return self._transform_reference_target(paragraph_element)
         if isinstance(paragraph_element, doc_struct.TextLine):
             return self._transform_text_line(paragraph_element)
         argtype = type(paragraph_element)
@@ -514,6 +535,29 @@ class _StructuralElementTransformation(_ParagraphTransformation):
         return _safe_cast(self._transform_element_base(structural_element),
                           doc_struct.StructuralElement)
 
+    def _transform_note_item(
+            self, index: int,
+            paragraph: doc_struct.Paragraph) -> Optional[doc_struct.Paragraph]:
+        """Transform a single note item (of type Paragraph)."""
+        return self._transform_paragraph(paragraph)
+
+    def _transform_note_items(
+        self, item_list: Sequence[doc_struct.Paragraph]
+    ) -> Sequence[doc_struct.Paragraph]:
+        """Transform each element in the notes appendix."""
+        return _skip_if_none([
+            self._call_with_context(self._transform_note_item, index, item)
+            for index, item in enumerate(item_list)
+        ])
+
+    def _transform_notes_appendix(
+            self, notes_appendix: doc_struct.NotesAppendix
+    ) -> doc_struct.NotesAppendix:
+        """Transform the notes appendix."""
+        return dataclasses.replace(notes_appendix,
+                                   elements=self._transform_note_items(
+                                       notes_appendix.elements))
+
     def _transform_structural_element(
         self, structural_element: doc_struct.StructuralElement
     ) -> doc_struct.StructuralElement:
@@ -528,6 +572,8 @@ class _StructuralElementTransformation(_ParagraphTransformation):
             return self._transform_table(structural_element)
         if isinstance(structural_element, doc_struct.Section):
             return self._transform_section(structural_element)
+        if isinstance(structural_element, doc_struct.NotesAppendix):
+            return self._transform_notes_appendix(structural_element)
         argtype = type(structural_element)
         raise TypeError(f'Cannot handle type {argtype}.')
 

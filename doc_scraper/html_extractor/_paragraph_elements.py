@@ -4,8 +4,7 @@ from typing import List, Optional, Union
 import re
 
 from doc_scraper import doc_struct
-
-from . import _base
+from doc_scraper.html_extractor import _base
 
 # Regex to remove multiline whitespace from HTML data.
 _DATA_WHITESPACE_RE = re.compile(r'\s+', re.S)
@@ -124,3 +123,61 @@ class LineBreakFrame(ParagraphElementFrame):
         return doc_struct.from_super(doc_struct.TextRun,
                                      super().to_struct(),
                                      text='\n')
+
+
+class SuperscriptFrame(ParagraphElementFrame):
+    """Represents comment and footnote superscript references."""
+
+    def __init__(self,
+                 context: _base.ParseContext,
+                 attrs: Optional[_base.KeyValueType] = None,
+                 style: Optional[_base.KeyValueType] = None) -> None:
+        """Construct an instance."""
+        super().__init__(context, attrs, style)
+
+    def handle_end(self, tag: str) -> Optional[_base.Frame]:
+        if tag == 'sup':
+            return self
+        if tag == 'span':
+            raise _base.UnexpectedHtmlTag(
+                f'Unexpected tag {tag} procesing {self}.')
+        return super().handle_end(tag)
+
+    def to_struct(self) -> doc_struct.Reference:
+        """Convert to doc_struct structure."""
+        text = "".join(self.text)
+        return doc_struct.from_super(doc_struct.Reference,
+                                     super().to_struct(),
+                                     text=text,
+                                     url=self.url)
+
+
+class PlainAnchorFrame(ParagraphElementFrame):
+    """Represents an A tag outside of a span.
+
+    Used as target for bookmarks, footnotes and comments.
+    """
+
+    def __init__(self,
+                 context: _base.ParseContext,
+                 attrs: Optional[_base.KeyValueType] = None,
+                 style: Optional[_base.KeyValueType] = None) -> None:
+        """Construct an instance."""
+        super().__init__(context, attrs, style)
+
+    def handle_end(self, tag: str) -> Optional[_base.Frame]:
+        if tag == 'a':
+            return self
+        if tag == 'span':
+            raise _base.UnexpectedHtmlTag(
+                f'Unexpected tag {tag} procesing {self}.')
+        return super().handle_end(tag)
+
+    def to_struct(self) -> doc_struct.ReferenceTarget:
+        """Convert to doc_struct structure."""
+        text = "".join(self.text)
+        ref_id = self.attrs.get('id', '')
+        return doc_struct.from_super(doc_struct.ReferenceTarget,
+                                     super().to_struct(),
+                                     text=text,
+                                     ref_id=ref_id)

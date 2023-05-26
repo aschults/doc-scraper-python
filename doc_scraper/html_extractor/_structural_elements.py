@@ -99,6 +99,16 @@ class ParagraphFrame(StructuralElementFrame):
                 self.context, attrs)
             self.elements.append(element)
             return element
+        elif tag == 'sup':
+            element = _paragraph_elements.SuperscriptFrame(
+                self.context, attrs)
+            self.elements.append(element)
+            return element
+        elif tag == 'a':
+            element = _paragraph_elements.PlainAnchorFrame(
+                self.context, attrs)
+            self.elements.append(element)
+            return element
         elif tag == 'br':
             element = _paragraph_elements.LineBreakFrame(self.context, attrs)
             self.elements.append(element)
@@ -124,6 +134,41 @@ class ParagraphFrame(StructuralElementFrame):
         """Convert to doc_struct structure."""
         elements = [e.to_struct() for e in self.elements]
         return doc_struct.from_super(doc_struct.Paragraph,
+                                     super().to_struct(),
+                                     elements=elements)
+
+
+class NotesFrame(StructuralElementFrame):
+    """Represent the div at the end containing footnotes and others."""
+
+    def __init__(self,
+                 context: _base.ParseContext,
+                 attrs: Optional[_base.KeyValueType] = None) -> None:
+        """Create an instance."""
+        super().__init__(context, attrs)
+        self.elements: List[ParagraphFrame] = []
+
+    def handle_start(self, tag: str,
+                     attrs: _base.KeyValueType) -> Optional[_base.Frame]:
+        """Handle the start of a nested element (text or chip)."""
+        if tag == 'p':
+            element = ParagraphFrame(
+                self.context, attrs)
+            self.elements.append(element)
+            return element
+        return None
+
+    def handle_end(self, tag: str) -> 'Optional[_base.Frame]':
+        """Handle closing of the associated p tag."""
+        if tag != 'div':
+            raise _base.UnexpectedHtmlTag(
+                f'Unexpected tag {tag} procesing {self}.')
+        return self
+
+    def to_struct(self) -> doc_struct.NotesAppendix:
+        """Convert to doc_struct structure."""
+        elements = [e.to_struct() for e in self.elements]
+        return doc_struct.from_super(doc_struct.NotesAppendix,
                                      super().to_struct(),
                                      elements=elements)
 
@@ -290,6 +335,10 @@ class DocContentFrame(_base.Frame):
         """Handle start of the various nested HTML tags."""
         if tag == 'p':
             paragraph = ParagraphFrame(self.context, attrs)
+            self.elements.append(paragraph)
+            return paragraph
+        elif tag == 'div':
+            paragraph = NotesFrame(self.context, attrs)
             self.elements.append(paragraph)
             return paragraph
         if _get_heading_level(tag) is not None:

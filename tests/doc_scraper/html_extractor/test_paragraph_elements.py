@@ -146,3 +146,57 @@ class ChipTest(unittest.TestCase):
 
         self.assertIsNone(chip.handle_start('a', {'href': 'http://whatever'}))
         self.assertEqual(chip.url, 'http://whatever')
+
+
+class SuperscriptTest(unittest.TestCase):
+    """Test the superscript frame class."""
+
+    def test_start_tag(self):
+        """Test to check if nested a tags set the url."""
+        context = _base.ParseContext()
+        sup = _paragraph_elements.SuperscriptFrame(context)
+
+        sup.handle_data('some_text')
+        sup.handle_start('a', {'href': 'http://whatever'})
+        self.assertEqual(
+            doc_struct.Reference(
+                text='some_text',
+                url='http://whatever',
+            ), sup.to_struct())
+
+    def test_end_tag(self):
+        """Test to ensure that we're not mixing this with span tags."""
+        context = _base.ParseContext()
+        sup = _paragraph_elements.SuperscriptFrame(context)
+
+        self.assertRaisesRegex(_base.UnexpectedHtmlTag,
+                               'Unexpected tag span.*',
+                               lambda: sup.handle_end('span'))
+        self.assertEqual(sup, sup.handle_end('sup'))
+
+
+class PlainAnchorTest(unittest.TestCase):
+    """Test the plain anchor frame class."""
+
+    def test_simple(self):
+        """Simple test, including construction."""
+
+        attrs = {'href': 'http://whatever', 'id': '#me'}
+        context = _base.ParseContext()
+        anchor = _paragraph_elements.PlainAnchorFrame(context, attrs)
+
+        anchor.handle_data('some_text')
+        self.assertEqual(
+            doc_struct.ReferenceTarget(attrs=attrs,
+                                       text='some_text',
+                                       ref_id='#me'), anchor.to_struct())
+
+    def test_end_tag(self):
+        """Test to ensure that we're not mixing this with span tags."""
+        context = _base.ParseContext()
+        sup = _paragraph_elements.PlainAnchorFrame(context)
+
+        self.assertRaisesRegex(_base.UnexpectedHtmlTag,
+                               'Unexpected tag span.*',
+                               lambda: sup.handle_end('span'))
+        self.assertEqual(sup, sup.handle_end('a'))
