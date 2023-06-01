@@ -9,6 +9,7 @@ from doc_scraper.basic_transforms import paragraph_basic
 from doc_scraper.basic_transforms import sections_basic
 from doc_scraper.basic_transforms import style_basic
 from doc_scraper.basic_transforms import elements_basics
+from doc_scraper.basic_transforms import paragraph_element_basic
 
 from doc_scraper import doc_struct
 
@@ -90,4 +91,9 @@ def get_default_builder() -> TransformBuilder:
         help_doc='Remove unwanted keys from attrs, style ' +
         'and ShardData.style_rules')
 
+    default_builder.register(
+        'regex_replace',
+        lambda config: paragraph_element_basic.RegexReplacerTransform(config),
+        config_type=paragraph_element_basic.RegexReplacerConfig,
+    )
     return default_builder

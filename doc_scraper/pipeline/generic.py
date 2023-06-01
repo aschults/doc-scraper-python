@@ -3,6 +3,7 @@
 import inspect
 import dataclasses
 import builtins
+import re
 from typing import (
     Callable,
     Any,
@@ -200,8 +201,10 @@ class GenericBuilder(Generic[_T]):
         """Create an instance."""
         self._registry: Dict[str, _BuilderData[_T]] = dict()
 
-        self.dacite_config = dacite.Config(
-            type_hooks={Type[object]: self._type_from_str})
+        self.dacite_config = dacite.Config(type_hooks={
+            Type[object]: self._type_from_str,
+            re.Pattern: re.compile
+        })
 
         self.modules = [builtins, doc_struct]
         self._cmdline_args: Sequence[str] = []
