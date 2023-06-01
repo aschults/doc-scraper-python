@@ -1,12 +1,6 @@
 """Common classes for working with tags."""
 
-from typing import (
-    Sequence,
-    Type,
-    Set,
-    Collection,
-    cast,
-)
+from typing import (Sequence, Type)
 import dataclasses
 
 from doc_scraper import doc_struct
@@ -19,14 +13,6 @@ class TagMatchConfig():
 
     Tags are stored in field `attrib`, by default under key "tags".
     """
-
-    tag_key: str = dataclasses.field(
-        default='tags',
-        metadata={
-            'help_docs':
-                'The key in `attrs` under which the set of tags is stored.',
-            'help_samples': [('Default', 'tags')]
-        })
 
     element_types: Sequence[Type[doc_struct.Element]] = dataclasses.field(
         default_factory=lambda: [doc_struct.Element],
@@ -62,23 +48,13 @@ class TagMatchConfig():
                               help_docs.RawSample('["X"]'))]
         })
 
-    def _get_tags(self, element: doc_struct.Element) -> Set[str]:
-        """Extract the tags (as set) from a document element."""
-        tags = element.attrs.get(self.tag_key, [])
-        if not isinstance(tags, Collection):
-            raise ValueError(
-                f'Attribute with key {self.tag_key} is no collection.')
-        return set(cast(Collection[str], tags))
-
     def is_matching(self, element: doc_struct.Element) -> bool:
         """Check if an element matches."""
         if not isinstance(element, tuple(self.element_types)):
             return False
 
-        tags = self._get_tags(element)
-
         rejected_set = set(self.rejected_tags)
-        if tags & rejected_set:
+        if element.tags & rejected_set:
             return False
 
         if not self.required_tag_sets:
@@ -86,6 +62,6 @@ class TagMatchConfig():
 
         for accepting_tags in self.required_tag_sets:
             accepting_set = set(accepting_tags)
-            if accepting_set.issubset(tags):
+            if accepting_set.issubset(element.tags):
                 return True
         return False

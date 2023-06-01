@@ -141,13 +141,13 @@ class TestRegexReplacerTransform(unittest.TestCase):
             ])
 
         data = doc_struct.Paragraph(elements=[
-            doc_struct.TextRun(attrs={'tags': {'A'}}, text='r1'),
-            doc_struct.TextRun(attrs={'tags': {}}, text='r2'),
+            doc_struct.TextRun(tags={'A'}, text='r1'),
+            doc_struct.TextRun(text='r2'),
         ])
 
         expected = doc_struct.Paragraph(elements=[
-            doc_struct.TextRun(attrs={'tags': {'A'}}, text='XX'),
-            doc_struct.TextRun(attrs={'tags': {}}, text='r2'),
+            doc_struct.TextRun(tags={'A'}, text='XX'),
+            doc_struct.TextRun(text='r2'),
         ])
 
         self.assertEqual(

@@ -50,11 +50,11 @@ class StyleTagTest(unittest.TestCase):
             shared_data=doc_struct.SharedData(),
             content=doc_struct.DocContent(elements=[
                 doc_struct.Paragraph(
-                    attrs={'tags': {'t1'}},
+                    tags={'t1'},
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
-                            attrs={'tags': {'t1'}},
+                            tags={'t1'},
                             style={
                                 'b': 'z',
                                 'a': 'x'
@@ -68,7 +68,7 @@ class StyleTagTest(unittest.TestCase):
                                  elements=[[
                                      doc_struct.DocContent(
                                          style={'a': 'x'},
-                                         attrs={'tags': {'t1'}},
+                                         tags={'t1'},
                                          elements=[
                                              doc_struct.BulletItem(
                                                  elements=[
@@ -83,7 +83,7 @@ class StyleTagTest(unittest.TestCase):
                                  ]]),
                 doc_struct.BulletList(items=[
                     doc_struct.BulletItem(
-                        attrs={'tags': {'t1'}},
+                        tags={'t1'},
                         style={'a': 'x'},
                         elements=[doc_struct.Chip(text='ccc')],
                         list_type='li',
@@ -103,11 +103,11 @@ class StyleTagTest(unittest.TestCase):
             shared_data=doc_struct.SharedData(),
             content=doc_struct.DocContent(elements=[
                 doc_struct.Paragraph(
-                    attrs={'tags': {'t2'}},
+                    tags={'t2'},
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
-                            attrs={'tags': {'t2', 't4'}},
+                            tags={'t2', 't4'},
                             style={
                                 'b': 'z',
                                 'a': 'x'
@@ -117,17 +117,17 @@ class StyleTagTest(unittest.TestCase):
                     ],
                 ),
                 doc_struct.Table(
-                    attrs={'tags': {'t3'}},
+                    tags={'t3'},
                     style={'a': 'y'},
                     elements=[[
                         doc_struct.DocContent(
                             style={'a': 'x'},
-                            attrs={'tags': {'t2'}},
+                            tags={'t2'},
                             elements=[
                                 doc_struct.BulletItem(
                                     elements=[
                                         doc_struct.TextRun(
-                                            attrs={'tags': {'t4'}},
+                                            tags={'t4'},
                                             style={'b': 'z'},
                                             text='yyy')
                                     ],
@@ -137,7 +137,7 @@ class StyleTagTest(unittest.TestCase):
                     ]]),
                 doc_struct.BulletList(items=[
                     doc_struct.BulletItem(
-                        attrs={'tags': {'t2'}},
+                        tags={'t2'},
                         style={'a': 'x'},
                         elements=[doc_struct.Chip(text='ccc')],
                         list_type='li',
@@ -164,7 +164,7 @@ class StyleTagTest(unittest.TestCase):
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
-                            attrs={'tags': {'t5'}},
+                            tags={'t5'},
                             style={
                                 'b': 'z',
                                 'a': 'x'
@@ -190,7 +190,7 @@ class StyleTagTest(unittest.TestCase):
                                  ]]),
                 doc_struct.BulletList(items=[
                     doc_struct.BulletItem(
-                        attrs={'tags': {'t5'}},
+                        tags={'t5'},
                         style={'a': 'x'},
                         elements=[doc_struct.Chip(text='ccc')],
                         list_type='li',
@@ -213,7 +213,7 @@ class StyleTagTest(unittest.TestCase):
             shared_data=doc_struct.SharedData(),
             content=doc_struct.DocContent(elements=[
                 doc_struct.Paragraph(
-                    attrs={'tags': {'t6'}},
+                    tags={'t6'},
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
@@ -229,7 +229,7 @@ class StyleTagTest(unittest.TestCase):
                                  elements=[[
                                      doc_struct.DocContent(
                                          style={'a': 'x'},
-                                         attrs={'tags': {'t6'}},
+                                         tags={'t6'},
                                          elements=[
                                              doc_struct.BulletItem(
                                                  elements=[
@@ -243,7 +243,7 @@ class StyleTagTest(unittest.TestCase):
                                  ]]),
                 doc_struct.BulletList(items=[
                     doc_struct.BulletItem(
-                        attrs={'tags': {'t6'}},
+                        tags={'t6'},
                         style={'a': 'x'},
                         elements=[doc_struct.Chip(text='ccc')],
                         list_type='li',
@@ -271,7 +271,7 @@ class StyleTagTest(unittest.TestCase):
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
-                            attrs={'tags': {'t7'}},
+                            tags={'t7'},
                             style={
                                 'b': 'z',
                                 'a': 'x'

@@ -8,7 +8,7 @@ from doc_scraper import doc_struct
 
 
 def _make_chip(tags: Sequence[str]) -> doc_struct.Element:
-    return doc_struct.Chip(attrs={'tags': list(tags)}, text='blah')
+    return doc_struct.Chip(tags=set(tags), text='blah')
 
 
 class TestTagMatching(unittest.TestCase):

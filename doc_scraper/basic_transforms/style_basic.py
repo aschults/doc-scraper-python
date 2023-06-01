@@ -27,7 +27,6 @@ class SimpleStyleMatchRule(MatchRule):
     """Implementation of MatchRule that matches entire style value strings."""
 
     tag: str = dataclasses.field(
-        default='tags',
         metadata={'help_text': 'Attribute in `attrs` to write the tags into.'})
 
     element_types: Iterable[Type[doc_struct.Element]] = dataclasses.field(
@@ -140,14 +139,6 @@ rules:
 class TaggingConfig():
     """Configuration for matching and tagging elements."""
 
-    tag_key: str = dataclasses.field(
-        default='tags',
-        metadata={
-            'help_text':
-                'The key inside the `attrs` attribute to use for tagging.',
-            'help_sampes': [('Default', 'tags')]
-        })
-
     matcher: StyleMatcher = dataclasses.field(
         metadata={
             'help_text': 'Rules to perform the matching and tagging.',
@@ -160,18 +151,15 @@ class TaggingTransform(doc_transform.Transformation):
 
     def __init__(self,
                  context: Optional[doc_transform.TransformationContext] = None,
-                 tag_key: str = 'tags',
                  matcher: Optional[StyleMatcher] = None):
         """Construct an instance.
 
         Args:
             context: Optional, customized context.
-            tag_key: The key to add to the attribs dict. Default: tags
             matcher: Construct using pre-existing matcher.
         """
         super().__init__(context)
         self.matcher = matcher or StyleMatcher()
-        self.tag_key = tag_key
 
     def add_rule(self, rule: MatchRule) -> None:
         """Add a rule to the matcher."""
@@ -181,17 +169,12 @@ class TaggingTransform(doc_transform.Transformation):
             self, element: doc_struct.Element) -> doc_struct.Element:
         """Transform (tag) all elements."""
         tags = self.matcher.get_tags(element)
-        new_attrs = dict(element.attrs)
-        if tags:
-            new_attrs[self.tag_key] = tags
-        else:
-            if self.tag_key in new_attrs:
-                del new_attrs[self.tag_key]
+        new_tags = element.tags | tags
 
-        element = dataclasses.replace(element, attrs=new_attrs)
+        element = dataclasses.replace(element, tags=new_tags)
         return super()._transform_element_base(element)
 
     @classmethod
     def from_config(cls, config: TaggingConfig) -> 'TaggingTransform':
         """Create an instance from config class."""
-        return TaggingTransform(tag_key=config.tag_key, matcher=config.matcher)
+        return TaggingTransform(matcher=config.matcher)

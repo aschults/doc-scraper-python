@@ -1,14 +1,5 @@
 """Some basic transformations for paragraphs, including bullet lists."""
-from typing import (
-    Optional,
-    List,
-    Sequence,
-    Callable,
-    Type,
-    Set,
-    Collection,
-    cast,
-)
+from typing import (Optional, List, Sequence, Callable, Type)
 import dataclasses
 import re
 
@@ -170,14 +161,6 @@ class TagMergeConfig():
     Tags are stored in field `attrib`, by default under key "tags".
     """
 
-    tag_key: str = dataclasses.field(
-        default='tags',
-        metadata={
-            'help_docs':
-                'The key in `attrs` under which the set of tags is stored.',
-            'help_samples': [('Default', 'tags')]
-        })
-
     merge_as_text_run: bool = dataclasses.field(
         default=False,
         metadata={
@@ -231,14 +214,6 @@ class TagMergePolicy():
         """Create an instance."""
         self.config = config
 
-    def _get_tags(self, element: doc_struct.Element) -> Set[str]:
-        """Extract the tags (as set) from a document element."""
-        tags = element.attrs.get(self.config.tag_key, [])
-        if not isinstance(tags, Collection):
-            raise ValueError(
-                f'Attribute with key {self.config.tag_key} is no collection.')
-        return set(cast(Collection[str], tags))
-
     def _is_matching(self, first: doc_struct.ParagraphElement,
                      second: doc_struct.ParagraphElement) -> bool:
         """Check if two paragraph elements match."""
@@ -254,18 +229,15 @@ class TagMergePolicy():
         if not isinstance(second, tuple(self.config.element_types)):
             return False
 
-        first_tags = self._get_tags(first)
-        second_tags = self._get_tags(second)
-
         rejected_set = set(self.config.rejected_tags)
-        if first_tags & rejected_set:
+        if first.tags & rejected_set:
             return False
-        if second_tags & rejected_set:
+        if second.tags & rejected_set:
             return False
 
         if not self.config.acceptable_tag_sets:
             return True
-        shared_tags = first_tags & second_tags
+        shared_tags = first.tags & second.tags
         for accepting_tags in self.config.acceptable_tag_sets:
             accepting_set = set(accepting_tags)
             if accepting_set.issubset(shared_tags):

@@ -18,7 +18,18 @@ General concepts:
     or additional filtering.
 """
 
-from typing import Optional, Any, TypeVar, Type, Mapping, Sequence, Dict, cast
+from typing import (
+    Optional,
+    Any,
+    TypeVar,
+    Type,
+    Mapping,
+    Sequence,
+    Dict,
+    cast,
+)
+from collections.abc import Set
+
 from typing import Union
 from dataclasses import dataclass, fields, is_dataclass, field, MISSING
 import json
@@ -34,10 +45,12 @@ class Element():
             Additional attributes may be added in transformations,
             e.g. when tagging elements.
         style: dict of HTML or other style details for the element.
+        tags: Set of tags associated with the element.
     """
 
     attrs: Mapping[str, Any] = field(default_factory=dict)
     style: Mapping[str, str] = field(default_factory=dict)
+    tags: Set[str] = field(default_factory=set)
 
 
 _AsDictArg = Union[Element, Sequence[Any], Mapping[str, Any]]
