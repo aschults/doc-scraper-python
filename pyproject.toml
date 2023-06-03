@@ -32,6 +32,9 @@ cli-name = "doc_scraper.extract_doc:app_main"
 testing = [
     "coverage>=5.0.3",
     "pytest",
+    "pycodestyle",
+    "pydocstyle",
+    "pytest-cov",
     "parameterized",
     "pyfakefs",
     "types-mock",

@@ -72,6 +72,8 @@ class StripElementsTransform(doc_transform.Transformation):
                 `style`. Matching entries are removed in any element type.
             remove_styles_re: List of regular expressions matching keys in
                 style_rules`. Matching entries are removed from SharedData.
+            remove_style_rules_re: List of regular expressions matching
+                style keys to remove.
         """
         super().__init__(context)
         if remove_attrs_re is None:

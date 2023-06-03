@@ -321,6 +321,10 @@ class _ParagraphTransformation(_ParagraphElementTransformation):
 
         Args:
             location: Tuple of the form (line_number, fragment_number_in_line).
+            element: The element to transform.
+
+        Returns:
+            The transformed element or None if no longer available.
         """
         return self._transform_paragraph_element(element)
 

@@ -103,8 +103,8 @@ class _BuilderData(Generic[_T]):
                 argument, to configure Dacite, which is used to convert the
                 arg into a dataclass object.
             kind: String to identify the the builder function.
-            build_function: The actual build function used when registering
-                the builder along with the kind.
+            build_func: The actual build function used when registering the
+                builder along with the kind.
             config_type: Optionaly allows to override the type of the first
                 arg of build_function, when not available, e.g. in lambdas.
             default_factory: Optionaly add a factory function that creates

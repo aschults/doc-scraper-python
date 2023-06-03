@@ -27,6 +27,7 @@ from typing import (
     Sequence,
     Dict,
     cast,
+    Generic,
 )
 from collections.abc import Set
 
@@ -57,32 +58,8 @@ _AsDictArg = Union[Element, Sequence[Any], Mapping[str, Any]]
 
 
 def as_dict(obj: _AsDictArg) -> Any:
-    """Convert a doc_struct tree to dict/list."""
-    if isinstance(obj, list):
-        return [as_dict(item) for item in obj]
-    if isinstance(obj, set):
-        return {as_dict(item): True for item in sorted(obj)}
-    if isinstance(obj, dict):
-        return {
-            k: as_dict(v)
-            for k, v in sorted(cast(Mapping[str, Any], obj).items())
-        }
-    if isinstance(obj, Element):
-        result: Dict[str, Any] = {}
-        for field_ in fields(obj):
-            name: str = field_.name
-            value: Any = getattr(obj, name)
-            if value == field_.default:
-                continue
-            if not isinstance(field_.default_factory,
-                              type(MISSING)) and value == cast(
-                                  Any, field_.default_factory)():
-                continue
-            result[name] = as_dict(value)
-        result['type'] = type(obj).__name__
-        return result
-
-    return obj
+    """Convert to dict/array structure."""
+    return DictConverter().convert(obj)
 
 
 _R = TypeVar('_R', bound=Element)
@@ -112,9 +89,7 @@ def from_super(cls: Type[_R], parent: Element, **kwargs: Any) -> _R:
 class ParagraphElement(Element):
     """Common base for all elements directly in a paragraph."""
 
-    def as_plain_text(self) -> str:
-        """Convert element to plain text."""
-        raise NotImplementedError('as_plain')
+    pass
 
 
 @dataclass(frozen=True, kw_only=True, eq=True)
@@ -127,10 +102,6 @@ class TextRun(ParagraphElement):
 
     text: str
 
-    def as_plain_text(self) -> str:
-        """Convert element to plain text."""
-        return self.text
-
 
 @dataclass(frozen=True, kw_only=True, eq=True)
 class TextLine(ParagraphElement):
@@ -142,10 +113,6 @@ class TextLine(ParagraphElement):
     """
 
     elements: Sequence[ParagraphElement]
-
-    def as_plain_text(self) -> str:
-        """Convert element to plain text."""
-        return "".join(element.as_plain_text() for element in self.elements)
 
 
 @dataclass(frozen=True, kw_only=True, eq=True)
@@ -160,13 +127,6 @@ class Link(ParagraphElement):
     text: str
     url: Optional[str] = None
 
-    def as_plain_text(self) -> str:
-        """Convert element to plain text."""
-        result = f'[{self.text}]'
-        if self.url:
-            result += f'({self.url})'
-        return result
-
 
 @dataclass(frozen=True, kw_only=True, eq=True)
 class Chip(ParagraphElement):
@@ -179,13 +139,6 @@ class Chip(ParagraphElement):
 
     text: str
     url: Optional[str] = None
-
-    def as_plain_text(self) -> str:
-        """Convert element to plain text."""
-        result = f'[{self.text}]'
-        if self.url:
-            result += f'({self.url})'
-        return result
 
 
 @dataclass(frozen=True, kw_only=True, eq=True)
@@ -200,13 +153,6 @@ class Reference(ParagraphElement):
     text: str
     url: str
 
-    def as_plain_text(self) -> str:
-        """Convert element to plain text."""
-        result = f'{self.text}'
-        if self.url:
-            result += f'({self.url})'
-        return result
-
 
 @dataclass(frozen=True, kw_only=True, eq=True)
 class ReferenceTarget(ParagraphElement):
@@ -219,13 +165,6 @@ class ReferenceTarget(ParagraphElement):
 
     text: str
     ref_id: str
-
-    def as_plain_text(self) -> str:
-        """Convert element to plain text."""
-        result = f'{self.text}'
-        if self.ref_id:
-            result += f'{{#{self.ref_id}}}'
-        return result
 
 
 @dataclass(frozen=True, kw_only=True, eq=True)
@@ -393,3 +332,248 @@ class DocStuctJsonEncoder(json.JSONEncoder):
             as_dict_['type'] = type(o).__name__
             return super().encode(as_dict)
         return super().encode(o)
+
+
+def _ensure_newline(text: str) -> str:
+    """Make sure the text ends with a newline."""
+    if text[-1] != '\n':
+        text += '\n'
+    return text
+
+
+# Output type for ConverterBase
+_O = TypeVar('_O')
+
+
+class ConverterBase(Generic[_O]):
+    """Base functionality to convert elements into another type."""
+
+    def _convert_element(self, element: Element) -> _O:
+        """Convert an actual Element, or any subtype as fallback."""
+        raise NotImplementedError('need to override')
+
+    def _convert_text(
+            self, element: TextRun | Link | Reference | Chip | ReferenceTarget
+    ) -> _O:
+        """Convert any element that has a text attribute."""
+        return self._convert_element(element)
+
+    def _convert_linklike(self, element: Link | Reference | Chip) -> _O:
+        """Convert all elements that have a url attribute."""
+        return self._convert_element(element)
+
+    def _convert_ref_target(self, element: ReferenceTarget) -> _O:
+        """Convert a reference target element."""
+        return self._convert_element(element)
+
+    def _convert_text_line(self, element: TextLine) -> _O:
+        """Convert a text line element."""
+        return self._convert_element(element)
+
+    def _convert_doc_content(self, element: DocContent) -> _O:
+        """Convert a doc content element."""
+        return self._convert_element(element)
+
+    def _convert_document(self, element: Document) -> _O:
+        """Convert a document element."""
+        return self._convert_element(element)
+
+    def _convert_table(self, element: Table) -> _O:
+        """Convert a table."""
+        return self._convert_element(element)
+
+    def _convert_paragraph(self, element: Paragraph) -> _O:
+        """Convert a paragraph."""
+        return self._convert_element(element)
+
+    def _convert_notes_appendix(self, element: NotesAppendix) -> _O:
+        """Convert the notes appendix."""
+        return self._convert_element(element)
+
+    def _convert_bullet_item(self, element: BulletItem) -> _O:
+        """Convert convert a bullet item."""
+        return self._convert_element(element)
+
+    def _convert_bullet_list(self, element: BulletList) -> _O:
+        """Convert a bullet list element."""
+        return self._convert_element(element)
+
+    def _convert_section(self, element: Section) -> _O:
+        """Convert a section element."""
+        return self._convert_element(element)
+
+    def _convert_shared_data(self, element: SharedData) -> _O:
+        """Convert the shared data element."""
+        return self._convert_element(element)
+
+    def convert(self, element: Any) -> _O:  # noqa: C901
+        """Convert any element.
+
+        Delegate to specific conversion functions.
+
+        Args:
+            element: The element to convert (including descendents)
+
+        Returns:
+            The converted element.
+
+        Raises:
+            NotImplementedError when encountering unknown types.
+        """
+        if isinstance(element, TextRun):
+            return self._convert_text(element)
+        if isinstance(element, ReferenceTarget):
+            return self._convert_ref_target(element)
+        if isinstance(element, (Link, Reference, Chip)):
+            return self._convert_linklike(element)
+        if isinstance(element, TextLine):
+            return self._convert_text_line(element)
+        if isinstance(element, DocContent):
+            return self._convert_doc_content(element)
+        if isinstance(element, Document):
+            return self._convert_document(element)
+        if isinstance(element, Table):
+            return self._convert_table(element)
+        if isinstance(element, BulletItem):
+            return self._convert_bullet_item(element)
+        if isinstance(element, BulletList):
+            return self._convert_bullet_list(element)
+        if isinstance(element, Paragraph):
+            return self._convert_paragraph(element)
+        if isinstance(element, NotesAppendix):
+            return self._convert_notes_appendix(element)
+        if isinstance(element, Section):
+            return self._convert_section(element)
+        if isinstance(element, SharedData):
+            return self._convert_shared_data(element)
+        if isinstance(element, Element):
+            return self._convert_element(element)
+        else:
+            tp = type(element)
+            raise NotImplementedError(f'Unknown type {tp}')
+
+
+@dataclass(kw_only=True)
+class DictConverter(ConverterBase[Any]):
+    """Convert an element with descendents to dict/array structure."""
+
+    def convert(self, element: Any) -> Any:
+        """Include handling of native data structures.
+
+        Supports list, set, dict, recursing conversion.
+        """
+        if isinstance(element, list):
+            return [
+                self.convert(item) for item in cast(Sequence[Any], element)
+            ]
+        elif isinstance(element, set):
+            return {
+                as_dict(item): True
+                for item in sorted(cast(Sequence[Any], element))
+            }
+        elif isinstance(element, dict):
+            return {
+                k: as_dict(v)
+                for k, v in sorted(cast(Mapping[str, Any], element).items())
+            }
+        elif isinstance(element, Element):
+            return super().convert(element)
+        else:
+            return element
+
+    def _convert_element(self, element: Element) -> Any:
+        """Process all elementt types generically.
+
+        Uses dataclasses.fields() for introspection and
+        converts all attributes.
+        """
+        result: Dict[str, Any] = {}
+        for field_ in fields(element):
+            name: str = field_.name
+            field_.type
+            value: Any = getattr(element, name)
+            if value == field_.default:
+                continue
+            if not isinstance(field_.default_factory,
+                              type(MISSING)) and value == cast(
+                                  Any, field_.default_factory)():
+                continue
+            result[name] = self.convert(value)
+        result['type'] = type(element).__name__
+        return result
+
+
+@dataclass(kw_only=True)
+class RawTextConverter(ConverterBase[str]):
+    """Extract all text portions of an element tree."""
+
+    def _convert_element(self, element: Element) -> str:
+        """Convert any generic element to empty string."""
+        return ''
+
+    def _convert_text(
+            self, element: TextRun | Link | Reference | Chip | ReferenceTarget
+    ) -> str:
+        """Extract the text from all types containing text."""
+        return element.text
+
+    def _convert_linklike(self, element: Link | Reference | Chip) -> str:
+        return self._convert_text(element)
+
+    def _convert_ref_target(self, element: ReferenceTarget) -> str:
+        return self._convert_text(element)
+
+    def _convert_text_line(self, element: TextLine) -> str:
+        """Convert text lines, assuming each line already ends with newline."""
+        return "".join(self.convert(element2) for element2 in element.elements)
+
+    def _convert_doc_content(self, element: DocContent) -> str:
+        """Convert doc content, ensuring structural elements are separated."""
+        return "".join(
+            _ensure_newline(self.convert(element2))
+            for element2 in element.elements)
+
+    def _convert_document(self, element: Document) -> str:
+        return self.convert(element.content)
+
+    def _convert_table(self, element: Table) -> str:
+        r"""Convert a table.
+
+        Use '\t' to mark cell boundaries, '\v' for row boundaries.
+        """
+        return "\v".join("\t".join(self.convert(c)
+                                   for c in row)
+                         for row in element.elements) + "\n"
+
+    def _convert_paragraph(self, element: Paragraph) -> str:
+        return "".join(self.convert(e) for e in element.elements)
+
+    def _convert_notes_appendix(self, element: NotesAppendix) -> str:
+        return "".join(
+            _ensure_newline(self.convert(e)) for e in element.elements)
+
+    def _convert_bullet_item(self, element: BulletItem) -> str:
+        """Convert and indent bullet items, including nested items."""
+        indent_spc = ("  " * (element.level or 0))
+        text = "".join(self.convert(e) for e in element.elements)
+        text = _ensure_newline('\n'.join(
+            f'{indent_spc}{line}' for line in text.split('\n')))
+        nested_text = "".join(
+            _ensure_newline(self._convert_bullet_item(item))
+            for item in element.nested)
+        return f'{text}{nested_text}'
+
+    def _convert_bullet_list(self, element: BulletList) -> str:
+        return "".join(
+            _ensure_newline(self.convert(item)) for item in element.items)
+
+    def _convert_section(self, element: Section) -> str:
+        """Convert a section, heading and content."""
+        heading_text = self.convert(element.heading) if element.heading else ''
+        content_text = "".join(
+            _ensure_newline(self.convert(item)) for item in element.content)
+
+        return f'{heading_text}\n{content_text}\f'
+
+    def _convert_shared_data(self, element: SharedData) -> str:
+        return ''

@@ -1,8 +1,11 @@
 build
 flake8 
+pycodestyle
+pydocstyle
 pytype
 pytest
 pytest-pythonpath
+pytest-cov
 
 parameterized
 pyfakefs

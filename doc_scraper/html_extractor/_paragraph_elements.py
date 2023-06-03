@@ -136,6 +136,7 @@ class SuperscriptFrame(ParagraphElementFrame):
         super().__init__(context, attrs, style)
 
     def handle_end(self, tag: str) -> Optional[_base.Frame]:
+        """Handle the end tags for sup and span."""
         if tag == 'sup':
             return self
         if tag == 'span':
@@ -166,6 +167,7 @@ class PlainAnchorFrame(ParagraphElementFrame):
         super().__init__(context, attrs, style)
 
     def handle_end(self, tag: str) -> Optional[_base.Frame]:
+        """Handle end tag of a and span tags."""
         if tag == 'a':
             return self
         if tag == 'span':

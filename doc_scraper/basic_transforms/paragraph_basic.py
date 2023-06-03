@@ -213,6 +213,7 @@ class TagMergePolicy():
     def __init__(self, config: TagMergeConfig) -> None:
         """Create an instance."""
         self.config = config
+        self._text_converter = doc_struct.RawTextConverter()
 
     def _is_matching(self, first: doc_struct.ParagraphElement,
                      second: doc_struct.ParagraphElement) -> bool:
@@ -249,7 +250,9 @@ class TagMergePolicy():
             second: doc_struct.ParagraphElement
     ) -> doc_struct.ParagraphElement:
         """Merge two elements, assuming they match."""
-        merged_text = first.as_plain_text() + second.as_plain_text()
+        first_text = self._text_converter.convert(first)
+        second_text = self._text_converter.convert(second)
+        merged_text = first_text + second_text
 
         if self.config.merge_as_text_run:
             return doc_struct.TextRun(attrs=first.attrs,

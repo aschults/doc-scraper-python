@@ -225,9 +225,11 @@ class BulletItemFrame(ParagraphFrame):
         """Construct an instance.
 
         Args:
+            context: Parse context for the document.
             list_type: tag name (ul or ol) of the containing bullet list.
             list_attrs: all attributes of the containing ul or ol tag to get
                 bullet type and other details.
+            attrs: Attributes, e.g. from the original HTML tag).
         """
         super().__init__(context, attrs)
         self.level: Optional[int] = None

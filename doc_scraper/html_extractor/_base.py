@@ -68,6 +68,7 @@ class Frame:
 
         Note: The end tag is processed by the frame that is dealing with
         the content, e.g. ParagraphFrame will handle the `</p>` HTML tag.
+
         Returns:
             The frame to be taken off the frame stack/path or None.
         """

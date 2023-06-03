@@ -27,7 +27,8 @@ def _get_doc_tag(doc: doc_struct.Document) -> str:
     paragraph = doc.content.elements[0]
     if not isinstance(paragraph, doc_struct.Paragraph):
         raise AssertionError('Not a paragraph')
-    return paragraph.elements[0].as_plain_text()
+    text_converter = doc_struct.RawTextConverter()
+    return text_converter.convert(paragraph.elements[0])
 
 
 @dataclasses.dataclass(kw_only=True)

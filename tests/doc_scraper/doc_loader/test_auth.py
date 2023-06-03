@@ -266,7 +266,6 @@ class TestCredentialsStore(fake_filesystem_unittest.TestCase):
 
     def test_add_cred(self):
         """Test adding individual cred."""
-
         store = _auth.CredentialsStore()
         store.add_credentials(self.mock_creds, 'a', True)
 

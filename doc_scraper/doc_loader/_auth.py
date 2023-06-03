@@ -72,6 +72,7 @@ class CredentialsStore():
             self._by_user[self.DEFAULT_USERNAME] = creds_list[0]
 
     def __str__(self) -> str:
+        """Convert to string, dumping all credentials."""
         return f'CredentialsStore({self._by_user})'
 
 

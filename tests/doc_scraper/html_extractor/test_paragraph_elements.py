@@ -180,7 +180,6 @@ class PlainAnchorTest(unittest.TestCase):
 
     def test_simple(self):
         """Simple test, including construction."""
-
         attrs = {'href': 'http://whatever', 'id': '#me'}
         context = _base.ParseContext()
         anchor = _paragraph_elements.PlainAnchorFrame(context, attrs)

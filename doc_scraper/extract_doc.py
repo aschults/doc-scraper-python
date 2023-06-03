@@ -45,6 +45,7 @@ def main(argv: Sequence[str]):
 
 
 def app_main():
+    """Run extract_doc."""
     app.run(main)  # type: ignore
 
 

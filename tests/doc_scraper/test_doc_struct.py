@@ -4,6 +4,7 @@ import unittest
 from typing import Any
 
 from doc_scraper import doc_struct
+from parameterized import parameterized  # type:ignore
 
 
 class CommonFunctionsTest(unittest.TestCase):
@@ -30,7 +31,12 @@ class CommonFunctionsTest(unittest.TestCase):
                     attrs={'x': 2},
                     style={'a': '11'},
                     left_offset=0,
-                    elements=[doc_struct.TextRun(text='xxx',)],
+                    elements=[
+                        doc_struct.TextRun(text='xxx',),
+                        doc_struct.TextLine(elements=[
+                            doc_struct.TextRun(text='xxx',),
+                        ]),
+                    ],
                 ),
                 doc_struct.BulletList(
                     attrs={'x': 3},
@@ -76,10 +82,19 @@ class CommonFunctionsTest(unittest.TestCase):
                     'a': '11'
                 },
                 'left_offset': 0,
-                'elements': [{
-                    'text': 'xxx',
-                    'type': 'TextRun'
-                }],
+                'elements': [
+                    {
+                        'text': 'xxx',
+                        'type': 'TextRun'
+                    },
+                    {
+                        'elements': [{
+                            'text': 'xxx',
+                            'type': 'TextRun'
+                        },],
+                        'type': 'TextLine'
+                    },
+                ],
                 'type': 'Paragraph'
             }, {
                 'attrs': {
@@ -138,3 +153,141 @@ class CommonFunctionsTest(unittest.TestCase):
             },
             'type': 'Element'
         }, result)
+
+
+class RawTextConversionTest(unittest.TestCase):
+    """Test conversion to raw text."""
+
+    @parameterized.expand([  # type:ignore
+        (
+            doc_struct.Chip(text='xxx'),
+            'xxx',
+        ),
+        (
+            doc_struct.TextRun(text='xxx'),
+            'xxx',
+        ),
+        (
+            doc_struct.Paragraph(elements=[
+                doc_struct.TextRun(text='a '),
+                doc_struct.TextRun(text='b'),
+            ]),
+            'a b',
+        ),
+        (
+            doc_struct.DocContent(elements=[
+                doc_struct.Paragraph(elements=[
+                    doc_struct.TextRun(text='a'),
+                    doc_struct.Reference(text='A', url='x'),
+                ]),
+                doc_struct.Paragraph(elements=[
+                    doc_struct.Chip(text='b'),
+                    doc_struct.ReferenceTarget(text='B', ref_id='x'),
+                ]),
+            ]),
+            'aA\nbB\n',
+        ),
+        (
+            doc_struct.NotesAppendix(elements=[
+                doc_struct.Paragraph(elements=[
+                    doc_struct.TextRun(text='a'),
+                ]),
+                doc_struct.Paragraph(elements=[
+                    doc_struct.Chip(text='b'),
+                ]),
+            ]),
+            'a\nb\n',
+        ),
+        (
+            doc_struct.Paragraph(elements=[
+                doc_struct.TextLine(elements=[
+                    doc_struct.TextRun(text='a\n'),
+                ]),
+                doc_struct.TextLine(elements=[
+                    doc_struct.TextRun(text='b'),
+                ]),
+            ]),
+            'a\nb',
+        ),
+        (
+            doc_struct.Section(
+                content=[
+                    doc_struct.Paragraph(elements=[
+                        doc_struct.TextRun(text='a'),
+                    ]),
+                ],
+                heading=doc_struct.Heading(
+                    level=2, elements=[doc_struct.TextRun(text='xxx')]),
+            ),
+            'xxx\na\n\f',
+        ),
+        (
+            doc_struct.Document(
+                shared_data=doc_struct.SharedData(),
+                content=doc_struct.DocContent(elements=[
+                    doc_struct.Paragraph(elements=[
+                        doc_struct.TextRun(text='a'),
+                    ]),
+                ]),
+            ),
+            'a\n',
+        ),
+        (
+            doc_struct.DocContent(elements=[
+                doc_struct.BulletList(items=[
+                    doc_struct.BulletItem(list_type='ul',
+                                          level=0,
+                                          elements=[
+                                              doc_struct.TextRun(text='a'),
+                                          ]),
+                    doc_struct.BulletItem(list_type='ul',
+                                          level=1,
+                                          elements=[
+                                              doc_struct.TextRun(text='b'),
+                                          ],
+                                          nested=[
+                                              doc_struct.BulletItem(
+                                                  list_type='ul',
+                                                  level=2,
+                                                  elements=[
+                                                      doc_struct.TextRun(
+                                                          text='c'),
+                                                  ]),
+                                          ])
+                ]),
+            ],),
+            'a\n  b\n    c\n',
+        ),
+        (
+            doc_struct.Table(elements=[
+                [
+                    doc_struct.DocContent(elements=[
+                        doc_struct.Paragraph(elements=[
+                            doc_struct.TextRun(text='a'),
+                        ])
+                    ]),
+                    doc_struct.DocContent(elements=[
+                        doc_struct.Paragraph(elements=[
+                            doc_struct.TextRun(text='b'),
+                        ])
+                    ]),
+                ],
+                [
+                    doc_struct.DocContent(elements=[
+                        doc_struct.Paragraph(elements=[
+                            doc_struct.TextRun(text='c'),
+                        ])
+                    ]),
+                    doc_struct.DocContent(elements=[
+                        doc_struct.Paragraph(elements=[
+                            doc_struct.TextRun(text='d'),
+                        ])
+                    ]),
+                ],
+            ],),
+            'a\n\tb\n\vc\n\td\n\n',
+        ),
+    ])
+    def test_conversion(self, data: doc_struct.Element, expected: str):
+        """Test parametrized conversion cases."""
+        self.assertEqual(expected, doc_struct.RawTextConverter().convert(data))

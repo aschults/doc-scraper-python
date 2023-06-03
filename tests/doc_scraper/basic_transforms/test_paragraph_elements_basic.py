@@ -34,7 +34,7 @@ class TestRegexReplace(unittest.TestCase):
         self.assertEqual('abc', replacer.transform_text('abc'))
 
     def test_replace_chained(self):
-        """Test chained replacements"""
+        """Test chained replacements."""
         replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
             paragraph_element_basic.RegexReplaceRule(
                 regex=re.compile('x'),
@@ -92,6 +92,7 @@ class TestTextTransformBase(unittest.TestCase):
     """Test base class for text transforms."""
 
     def test_simple_transform(self):
+        """Transform a simple element tree."""
         data = doc_struct.Paragraph(elements=[
             doc_struct.TextRun(attrs={'a': 1}, text='run'),
             doc_struct.Chip(attrs={'a': 2}, text='chip'),
@@ -133,6 +134,7 @@ class TestRegexReplacerTransform(unittest.TestCase):
     """Test regex replacer class."""
 
     def test_simple_transform(self):
+        """Transform a simple text, marked by tag."""
         config = paragraph_element_basic.RegexReplacerConfig(
             match=tags_basic.TagMatchConfig(required_tag_sets=[['A']]),
             substitutions=[

@@ -1,5 +1,5 @@
 {
-    "python.linting.banditEnabled": true,
+    "python.linting.banditEnabled": false,
     "python.linting.flake8Enabled": true,
     "python.linting.mypyEnabled": false,
     "python.linting.prospectorEnabled": false,
@@ -16,7 +16,9 @@
         "-a"
     ],
     "python.testing.pytestArgs": [
-        "tests"
+        "tests",
+        "--cov=doc_scraper/",
+        "--cov-report=lcov"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
@@ -29,4 +31,24 @@
     "python.analysis.inlayHints.variableTypes": true,
     "pythonTestExplorer.testFramework": "pytest",
     "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        ".",
+        "-p",
+        "*test*.py",
+        "--cov=doc_scraper/",
+        "--cov-report=xml",
+        "--pdb"
+    ],
+    "markiscodecoverage.searchCriteria": "coverage.lcov",
+    "python.linting.flake8Args": [
+        "--max-complexity=10",
+        "--max-line-length=80",
+        "--docstring-convention=google"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.pydocstyleArgs": [
+        "--convention=google"
+    ],
 }

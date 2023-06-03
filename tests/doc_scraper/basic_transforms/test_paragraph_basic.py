@@ -191,6 +191,11 @@ class TextMergeTest(unittest.TestCase):
 class TestTagMergePolicy(unittest.TestCase):
     """Test the TagMergePolicy class."""
 
+    def setUp(self) -> None:
+        """Prepare text converter for setup."""
+        self._text_converter = doc_struct.RawTextConverter()
+        return super().setUp()
+
     @parameterized.expand([  # type: ignore
         (
             'Default case',
@@ -205,7 +210,7 @@ class TestTagMergePolicy(unittest.TestCase):
                 element_types=[doc_struct.ParagraphElement]),
             doc_struct.TextRun(text='a'),
             doc_struct.Chip(text='b'),
-            'a[b]',
+            'ab',
         ),
         (
             'matching relaxed match',
@@ -213,7 +218,7 @@ class TestTagMergePolicy(unittest.TestCase):
                 element_types=[doc_struct.ParagraphElement]),
             doc_struct.Link(text='a', url='x'),
             doc_struct.Chip(text='b', url='x'),
-            '[ab](x)',
+            'ab',
         ),
         (
             'matching relaxed match',
@@ -222,7 +227,7 @@ class TestTagMergePolicy(unittest.TestCase):
                 element_types=[doc_struct.ParagraphElement]),
             doc_struct.Link(text='a', url='x'),
             doc_struct.Chip(text='b', url='x'),
-            '[a](x)[b](x)',
+            'ab',
         ),
         (
             'matching text line',
@@ -230,7 +235,7 @@ class TestTagMergePolicy(unittest.TestCase):
                 element_types=[doc_struct.ParagraphElement]),
             doc_struct.TextLine(elements=[doc_struct.TextRun(text='a')]),
             doc_struct.TextLine(elements=[doc_struct.Chip(text='b')]),
-            'a[b]',
+            'ab',
         ),
         (
             'matching single tag',
@@ -298,10 +303,11 @@ class TestTagMergePolicy(unittest.TestCase):
         self.assertTrue(policy._is_matching(first, second))  # type: ignore
         self.assertEqual(
             merged_text,
-            policy._create_merged(  # type: ignore
-                first,
-                second,
-            ).as_plain_text())
+            self._text_converter.convert(
+                policy._create_merged(  # type: ignore
+                    first,
+                    second,
+                )))
 
     @parameterized.expand([  # type: ignore
         (

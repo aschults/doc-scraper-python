@@ -59,7 +59,7 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
         Args:
             doc_ids: IDs of docs to fetch. Default: []. The list can be
                 extended using set_commandline_args().
-            doc_downloader_or_creds: Pass down DocDownloader itself, or
+            downloader_or_creds: Pass down DocDownloader itself, or
                 credentials required to set up one.
         """
         self._doc_ids: List[str] = doc_ids or []

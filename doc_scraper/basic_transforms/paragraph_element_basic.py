@@ -62,18 +62,19 @@ class RegexReplacerConfig():
         })
 
     def transform_text(self, text: str) -> str:
-        for substitution in self.substitutions:
-            if not substitution.operation:
-                text = substitution.regex.sub(substitution.substitute, text)
-            elif substitution.operation == 'lower':
-                text = substitution.regex.sub(
-                    lambda m: m.expand(substitution.substitute).lower(), text)
-            elif substitution.operation == 'upper':
-                text = substitution.regex.sub(
-                    lambda m: m.expand(substitution.substitute).upper(), text)
+        """Transform the text content."""
+        for subst in self.substitutions:
+            if not subst.operation:
+                text = subst.regex.sub(subst.substitute, text)
+            elif subst.operation == 'lower':
+                text = subst.regex.sub(
+                    lambda m: m.expand(subst.substitute).lower(), text)
+            elif subst.operation == 'upper':
+                text = subst.regex.sub(
+                    lambda m: m.expand(subst.substitute).upper(), text)
             else:
                 raise ValueError(
-                    f'Unknown substitution operation {substitution.operation}')
+                    f'Unknown substitution operation {subst.operation}')
         return text
 
 
@@ -82,6 +83,7 @@ class TextTransformBase(doc_transform.Transformation):
 
     def __init__(self,
                  context: Optional[TransformationContext] = None) -> None:
+        """Construct an instance."""
         super().__init__(context)
 
     def _process_text_string(self, text: Optional[str]) -> str:
@@ -134,10 +136,12 @@ class TextTransformBase(doc_transform.Transformation):
 
 
 class RegexReplacerTransform(TextTransformBase):
+    """Transformation to replace the text content of doc struct elements."""
 
     def __init__(self,
                  config: RegexReplacerConfig,
                  context: Optional[TransformationContext] = None) -> None:
+        """Construct an instance."""
         super().__init__(context)
         self.config = config
 

@@ -7,3 +7,6 @@ credentials.json
 service_accounts/
 dist
 doc_scraper.egg-info
+.coverage
+coverage.lcov
+coverage.xml
