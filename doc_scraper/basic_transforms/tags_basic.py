@@ -1,18 +1,131 @@
 """Common classes for working with tags."""
 
-from typing import (Sequence, Type)
+from typing import (
+    Optional,
+    Sequence,
+    Type,
+    Any,
+    List,
+    cast,
+    Iterable,
+    Callable,
+)
 import dataclasses
 
 from doc_scraper import doc_struct
 from doc_scraper import help_docs
+from doc_scraper.doc_struct import Element
+
+
+class ElementFilterConverter(
+        doc_struct.ConverterBase[Sequence[doc_struct.Element]]):
+    """Convert an element tree into a squence of elements, filtered."""
+
+    def __init__(self, filter_func: Callable[[doc_struct.Element],
+                                             bool]) -> None:
+        """Create an instance.
+
+        Args:
+            filter_func: Callable applied to each element. If returning
+                True, the element is added to the result.
+        """
+        super().__init__()
+        self._filter_func = filter_func
+
+    def _flatten_list(self, *nested_elements: Any) -> Sequence[Any]:
+        """Flatten a list that is nested at any depth."""
+        result: List[Any] = []
+        pending: List[Any] = list(nested_elements)
+        while pending:
+            item = pending.pop()
+            if isinstance(item, (list, tuple, set)):
+                pending.extend(cast(Iterable[Any], item))
+            else:
+                result.append(item)
+        return result
+
+    def _filter(self, element: doc_struct.Element,
+                *descendents: Any) -> Sequence[doc_struct.Element]:
+        """Filter matching elements.
+
+        Args:
+            element: The element currently inspected.
+            descendents: The filtered out descendents of the current
+                element, potentially as nested list.
+        """
+        result: List[Any] = []
+        if self._filter_func(element):
+            result.append(element)
+        result.extend(self._flatten_list(*descendents))
+        return result
+
+    def _convert_element(self, element: Element) -> Sequence[Element]:
+        """Check for elements without descendents."""
+        return self._filter(element)
+
+    def _convert_bullet_item_with_descendents(
+        self, element: doc_struct.BulletItem,
+        elements: Sequence[Sequence[doc_struct.Element]],
+        nested: Sequence[Sequence[doc_struct.Element]]
+    ) -> Sequence[doc_struct.Element]:
+        return self._filter(element, *elements, *nested)
+
+    def _convert_bullet_list_with_descendents(
+        self, element: doc_struct.BulletList,
+        items: Sequence[Sequence[doc_struct.Element]]
+    ) -> Sequence[doc_struct.Element]:
+        return self._filter(element, *items)
+
+    def _convert_doc_content_with_descentdents(
+        self, element: doc_struct.DocContent,
+        elements: Sequence[Sequence[doc_struct.Element]]
+    ) -> Sequence[doc_struct.Element]:
+        return self._filter(element, *elements, *elements)
+
+    def _convert_document_with_descendents(
+            self, element: doc_struct.Document,
+            shared_data: Sequence[doc_struct.Element],
+            content: Sequence[doc_struct.Element]
+    ) -> Sequence[doc_struct.Element]:
+        return self._filter(element, *shared_data, *content)
+
+    def _convert_notes_appendix_with_descendents(
+        self, element: doc_struct.NotesAppendix,
+        elements: Sequence[Sequence[doc_struct.Element]]
+    ) -> Sequence[doc_struct.Element]:
+        return self._filter(element, *elements)
+
+    def _convert_paragraph_with_descendents(
+        self, element: doc_struct.Paragraph,
+        elements: Sequence[Sequence[doc_struct.Element]]
+    ) -> Sequence[doc_struct.Element]:
+        return self._filter(element, *elements)
+
+    def _convert_section_with_descendents(
+        self, element: doc_struct.Section,
+        heading: Optional[Sequence[doc_struct.Element]],
+        content: Sequence[Sequence[doc_struct.Element]]
+    ) -> Sequence[doc_struct.Element]:
+        if heading is None:
+            heading = []
+        return self._filter(element, *heading, *content)
+
+    def _convert_table_with_descendents(
+        self, element: doc_struct.Table,
+        elements: Sequence[Sequence[Sequence[doc_struct.Element]]]
+    ) -> Sequence[doc_struct.Element]:
+        return self._filter(element, *elements)
+
+    def _convert_text_line_with_descendents(
+        self, element: doc_struct.TextLine,
+        elements: Sequence[Sequence[doc_struct.Element]]
+    ) -> Sequence[doc_struct.Element]:
+        return self._filter(element, *elements)
 
 
 @dataclasses.dataclass(kw_only=True)
 class TagMatchConfig():
-    """Configuration for matching by tag.
-
-    Tags are stored in field `attrib`, by default under key "tags".
-    """
+    """Configuration for matching by tag."""
 
     element_types: Sequence[Type[doc_struct.Element]] = dataclasses.field(
         default_factory=lambda: [doc_struct.Element],
@@ -65,3 +178,14 @@ class TagMatchConfig():
             if accepting_set.issubset(element.tags):
                 return True
         return False
+
+    def match_descendents(
+            self,
+            *elements: doc_struct.Element) -> Sequence[doc_struct.Element]:
+        """Search through the element and descendents and match this config."""
+        filter_converter = ElementFilterConverter(self.is_matching)
+        result: List[doc_struct.Element] = []
+        for element in elements:
+            result.extend(filter_converter.convert(element))
+
+        return result
