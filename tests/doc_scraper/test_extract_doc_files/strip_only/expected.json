@@ -1,8 +1,7 @@
 {
-    "shared_data": {
-        "type": "SharedData"
-    },
+    "type": "Document",
     "content": {
+        "type": "DocContent",
         "attrs": {
             "class": "doc-content"
         },
@@ -12,6 +11,8 @@
         },
         "elements": [
             {
+                "type": "Heading",
+                "level": 1,
                 "attrs": {
                     "id": "h.lw650pj84acf"
                 },
@@ -21,29 +22,29 @@
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
+                        "type": "TextRun",
+                        "text": "TestFile",
                         "style": {
                             "color": "#000000",
                             "font-size": "20pt",
                             "font-style": "normal",
                             "font-weight": "400",
                             "text-decoration": "none"
-                        },
-                        "text": "TestFile",
-                        "type": "TextRun"
+                        }
                     },
                     {
-                        "text": "\n    ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n    "
                     }
-                ],
-                "level": 1,
-                "type": "Heading"
+                ]
             },
             {
+                "type": "Heading",
+                "level": 2,
                 "attrs": {
                     "id": "h.lsf52ktqgd8z"
                 },
@@ -53,94 +54,93 @@
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
-                        "text": "Some Heading",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "Some Heading"
                     },
                     {
-                        "text": "\n    ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n    "
                     }
-                ],
-                "level": 2,
-                "type": "Heading"
+                ]
             },
             {
+                "type": "BulletList",
                 "attrs": {
                     "class": "lst-kix_sud2pp5cbyz5-0 start"
                 },
                 "items": [
                     {
+                        "type": "BulletItem",
+                        "left_offset": 36,
+                        "level": 1,
+                        "list_type": "ul",
+                        "list_class": "kix_sud2pp5cbyz5",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt"
                         },
-                        "left_offset": 36,
                         "elements": [
                             {
-                                "text": "\n            ",
-                                "type": "TextRun"
+                                "type": "TextRun",
+                                "text": "\n            "
                             },
                             {
+                                "type": "TextRun",
+                                "text": "Bullet1",
                                 "style": {
                                     "color": "#000000",
                                     "font-size": "11pt",
                                     "font-style": "normal",
                                     "font-weight": "400",
                                     "text-decoration": "none"
-                                },
-                                "text": "Bullet1",
-                                "type": "TextRun"
+                                }
                             },
                             {
-                                "text": "\n        ",
-                                "type": "TextRun"
+                                "type": "TextRun",
+                                "text": "\n        "
                             }
-                        ],
-                        "level": 1,
-                        "list_type": "ul",
-                        "list_class": "kix_sud2pp5cbyz5",
-                        "type": "BulletItem"
+                        ]
                     },
                     {
+                        "type": "BulletItem",
+                        "left_offset": 36,
+                        "level": 1,
+                        "list_type": "ul",
+                        "list_class": "kix_sud2pp5cbyz5",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt"
                         },
-                        "left_offset": 36,
                         "elements": [
                             {
-                                "text": "\n            ",
-                                "type": "TextRun"
+                                "type": "TextRun",
+                                "text": "\n            "
                             },
                             {
+                                "type": "TextRun",
+                                "text": "Bullet2",
                                 "style": {
                                     "color": "#000000",
                                     "font-size": "11pt",
                                     "font-style": "normal",
                                     "font-weight": "400",
                                     "text-decoration": "none"
-                                },
-                                "text": "Bullet2",
-                                "type": "TextRun"
+                                }
                             },
                             {
-                                "text": "\n        ",
-                                "type": "TextRun"
+                                "type": "TextRun",
+                                "text": "\n        "
                             }
-                        ],
-                        "level": 1,
-                        "list_type": "ul",
-                        "list_class": "kix_sud2pp5cbyz5",
-                        "type": "BulletItem"
+                        ]
                     }
-                ],
-                "type": "BulletList"
+                ]
             },
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt",
@@ -148,33 +148,33 @@
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
+                        "type": "TextRun",
+                        "text": "SomeText",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt",
                             "font-style": "normal",
                             "font-weight": "400",
                             "text-decoration": "none"
-                        },
-                        "text": "SomeText",
-                        "type": "TextRun"
+                        }
                     },
                     {
-                        "text": "\n    ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n    "
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             }
-        ],
-        "type": "DocContent"
+        ]
     },
-    "type": "Document"
+    "shared_data": {
+        "type": "SharedData"
+    }
 }

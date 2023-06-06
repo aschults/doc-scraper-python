@@ -113,27 +113,27 @@ class TestSinkBuilder(unittest.TestCase):
 
 # JSON template of the serialized form of a document.
 JSON_OUTPUT_TEMPLATE = '''{
+    "type": "Document",
     "attrs": {
         "attr_data": 991199
     },
-    "shared_data": {
-        "type": "SharedData"
-    },
     "content": {
+        "type": "DocContent",
         "elements": [
             {
+                "type": "Paragraph",
                 "elements": [
                     {
-                        "text": "__tag__",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "__tag__"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             }
-        ],
-        "type": "DocContent"
+        ]
     },
-    "type": "Document"
+    "shared_data": {
+        "type": "SharedData"
+    }
 }'''
 
 

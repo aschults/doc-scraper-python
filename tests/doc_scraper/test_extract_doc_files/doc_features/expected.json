@@ -1,8 +1,7 @@
 {
-    "shared_data": {
-        "type": "SharedData"
-    },
+    "type": "Document",
     "content": {
+        "type": "DocContent",
         "attrs": {
             "class": "doc-content"
         },
@@ -12,34 +11,35 @@
         },
         "elements": [
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt"
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
-                        "style": {
-                            "color": "#000000",
-                            "font-size": "11pt",
-                            "font-style": "normal",
-                            "font-weight": "400",
-                            "text-decoration": "none"
-                        },
+                        "type": "TextRun",
                         "text": "Whatever text",
-                        "type": "TextRun"
+                        "style": {
+                            "color": "#000000",
+                            "font-size": "11pt",
+                            "font-style": "normal",
+                            "font-weight": "400",
+                            "text-decoration": "none"
+                        }
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             },
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt",
@@ -47,32 +47,32 @@
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
+                        "type": "TextRun",
+                        "text": "",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt",
                             "font-style": "normal",
                             "font-weight": "400",
                             "text-decoration": "none"
-                        },
-                        "text": "",
-                        "type": "TextRun"
+                        }
                     },
                     {
-                        "text": "\n    ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n    "
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             },
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt",
@@ -80,57 +80,57 @@
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
+                        "type": "TextRun",
+                        "text": "",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt",
                             "font-style": "normal",
                             "font-weight": "400",
                             "text-decoration": "none"
-                        },
-                        "text": "",
-                        "type": "TextRun"
+                        }
                     },
                     {
-                        "text": "\n    ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n    "
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             },
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt"
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
-                        "text": "Some ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "Some "
                     },
                     {
-                        "text": "comment",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "comment"
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             },
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt",
@@ -138,58 +138,58 @@
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
+                        "type": "TextRun",
+                        "text": "",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt",
                             "font-style": "normal",
                             "font-weight": "400",
                             "text-decoration": "none"
-                        },
-                        "text": "",
-                        "type": "TextRun"
+                        }
                     },
                     {
-                        "text": "\n    ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n    "
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             },
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt"
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
-                        "text": "Footnote here",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "Footnote here"
                     },
                     {
+                        "type": "Reference",
                         "text": "[1]",
-                        "url": "#ftnt1",
-                        "type": "Reference"
+                        "url": "#ftnt1"
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             },
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt",
@@ -197,111 +197,111 @@
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
+                        "type": "TextRun",
+                        "text": "",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt",
                             "font-style": "normal",
                             "font-weight": "400",
                             "text-decoration": "none"
-                        },
-                        "text": "",
-                        "type": "TextRun"
+                        }
                     },
                     {
-                        "text": "\n    ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n    "
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             },
             {
+                "type": "Paragraph",
                 "style": {
                     "color": "#000000",
                     "font-size": "11pt"
                 },
                 "elements": [
                     {
-                        "text": "\n        ",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n        "
                     },
                     {
+                        "type": "TextRun",
+                        "text": "A bookmark",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt",
                             "font-style": "normal",
                             "font-weight": "400",
                             "text-decoration": "none"
-                        },
-                        "text": "A bookmark",
-                        "type": "TextRun"
+                        }
                     },
                     {
-                        "attrs": {
-                            "id": "id.gygx9q3uwyyl"
-                        },
+                        "type": "ReferenceTarget",
                         "text": "",
                         "ref_id": "id.gygx9q3uwyyl",
-                        "type": "ReferenceTarget"
+                        "attrs": {
+                            "id": "id.gygx9q3uwyyl"
+                        }
                     },
                     {
-                        "text": "\n",
-                        "type": "TextRun"
+                        "type": "TextRun",
+                        "text": "\n"
                     }
-                ],
-                "type": "Paragraph"
+                ]
             },
             {
+                "type": "NotesAppendix",
                 "elements": [
                     {
+                        "type": "Paragraph",
                         "style": {
                             "color": "#000000",
                             "font-size": "11pt"
                         },
                         "elements": [
                             {
-                                "text": "\n            ",
-                                "type": "TextRun"
+                                "type": "TextRun",
+                                "text": "\n            "
                             },
                             {
+                                "type": "ReferenceTarget",
+                                "text": "[1]",
+                                "ref_id": "ftnt1",
                                 "attrs": {
                                     "href": "#ftnt_ref1",
                                     "id": "ftnt1"
-                                },
-                                "text": "[1]",
-                                "ref_id": "ftnt1",
-                                "type": "ReferenceTarget"
+                                }
                             },
                             {
+                                "type": "TextRun",
+                                "text": " The footnote text",
                                 "style": {
                                     "color": "#000000",
                                     "font-size": "10pt",
                                     "font-style": "normal",
                                     "font-weight": "400",
                                     "text-decoration": "none"
-                                },
-                                "text": " The footnote text",
-                                "type": "TextRun"
+                                }
                             },
                             {
-                                "text": "\n",
-                                "type": "TextRun"
+                                "type": "TextRun",
+                                "text": "\n"
                             }
-                        ],
-                        "type": "Paragraph"
+                        ]
                     }
-                ],
-                "type": "NotesAppendix"
+                ]
             }
-        ],
-        "type": "DocContent"
+        ]
     },
-    "type": "Document"
+    "shared_data": {
+        "type": "SharedData"
+    }
 }

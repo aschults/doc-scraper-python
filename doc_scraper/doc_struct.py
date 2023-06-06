@@ -29,6 +29,8 @@ from typing import (
     cast,
     Generic,
 )
+
+from types import NoneType
 from collections.abc import Set
 
 from typing import Union
@@ -368,38 +370,126 @@ class ConverterBase(Generic[_O]):
 
     def _convert_text_line(self, element: TextLine) -> _O:
         """Convert a text line element."""
+        converted_elements = [
+            self.convert(element2) for element2 in element.elements
+        ]
+        return self._convert_text_line_with_descendents(
+            element, converted_elements)
+
+    def _convert_text_line_with_descendents(self, element: TextLine,
+                                            elements: Sequence[_O]) -> _O:
+        """Convert a text line with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_doc_content(self, element: DocContent) -> _O:
         """Convert a doc content element."""
+        converted_elements = [
+            self.convert(element2) for element2 in element.elements
+        ]
+        return self._convert_doc_content_with_descentdents(
+            element, converted_elements)
+
+    def _convert_doc_content_with_descentdents(self, element: DocContent,
+                                               elements: Sequence[_O]) -> _O:
+        """Convert a doc content element with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_document(self, element: Document) -> _O:
         """Convert a document element."""
+        return self._convert_document_with_descendents(
+            element, self.convert(element.shared_data),
+            self.convert(element.content))
+
+    def _convert_document_with_descendents(self, element: Document,
+                                           shared_data: _O, content: _O) -> _O:
+        """Convert a document with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_table(self, element: Table) -> _O:
         """Convert a table."""
+        converted_elements = [
+            [self.convert(cell) for cell in row] for row in element.elements
+        ]
+        return self._convert_table_with_descendents(element,
+                                                    converted_elements)
+
+    def _convert_table_with_descendents(
+            self, element: Table, elements: Sequence[Sequence[_O]]) -> _O:
+        """Convert a table with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_paragraph(self, element: Paragraph) -> _O:
         """Convert a paragraph."""
+        converted_elements = [
+            self.convert(element2) for element2 in element.elements
+        ]
+        return self._convert_paragraph_with_descendents(
+            element, converted_elements)
+
+    def _convert_paragraph_with_descendents(self, element: Paragraph,
+                                            elements: Sequence[_O]) -> _O:
+        """Convert a paragraph with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_notes_appendix(self, element: NotesAppendix) -> _O:
         """Convert the notes appendix."""
+        converted_elements = [
+            self.convert(element2) for element2 in element.elements
+        ]
+        return self._convert_notes_appendix_with_descendents(
+            element, converted_elements)
+
+    def _convert_notes_appendix_with_descendents(self, element: NotesAppendix,
+                                                 elements: Sequence[_O]) -> _O:
+        """Convert the notes appendix with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_bullet_item(self, element: BulletItem) -> _O:
         """Convert convert a bullet item."""
+        converted_nested = [
+            self.convert(element2) for element2 in element.nested
+        ]
+        converted_elements = [
+            self.convert(element2) for element2 in element.elements
+        ]
+        return self._convert_bullet_item_with_descendents(
+            element, converted_elements, converted_nested)
+
+    def _convert_bullet_item_with_descendents(self, element: BulletItem,
+                                              elements: Sequence[_O],
+                                              nested: Sequence[_O]) -> _O:
+        """Convert a bullet item with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_bullet_list(self, element: BulletList) -> _O:
         """Convert a bullet list element."""
+        converted_items = [
+            self.convert(element2) for element2 in element.items
+        ]
+        return self._convert_bullet_list_with_descendents(
+            element, converted_items)
+
+    def _convert_bullet_list_with_descendents(self, element: BulletList,
+                                              items: Sequence[_O]) -> _O:
+        """Convert a bullet list with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_section(self, element: Section) -> _O:
         """Convert a section element."""
+        converted_heading = None
+        if element.heading:
+            converted_heading = self.convert(element.heading)
+        converted_content = [
+            self.convert(element2) for element2 in element.content
+        ]
+        return self._convert_section_with_descendents(element,
+                                                      converted_heading,
+                                                      converted_content)
+
+    def _convert_section_with_descendents(self, element: Section,
+                                          heading: Optional[_O],
+                                          content: Sequence[_O]) -> _O:
+        """Convert a section element with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_shared_data(self, element: SharedData) -> _O:
@@ -457,49 +547,109 @@ class ConverterBase(Generic[_O]):
 class DictConverter(ConverterBase[Any]):
     """Convert an element with descendents to dict/array structure."""
 
-    def convert(self, element: Any) -> Any:
-        """Include handling of native data structures.
-
-        Supports list, set, dict, recursing conversion.
-        """
-        if isinstance(element, list):
-            return [
-                self.convert(item) for item in cast(Sequence[Any], element)
-            ]
-        elif isinstance(element, set):
-            return {
-                as_dict(item): True
-                for item in sorted(cast(Sequence[Any], element))
-            }
-        elif isinstance(element, dict):
-            return {
-                k: as_dict(v)
-                for k, v in sorted(cast(Mapping[str, Any], element).items())
-            }
-        elif isinstance(element, Element):
-            return super().convert(element)
-        else:
-            return element
-
     def _convert_element(self, element: Element) -> Any:
-        """Process all elementt types generically.
+        """Convert an actual Element, or any subtype as fallback."""
+        converted_attrs = {k: v for k, v in sorted(element.attrs.items())}
+        converted_style = {k: v for k, v in sorted(element.style.items())}
+        converted_tags = {item: True for item in sorted(element.tags)}
 
-        Uses dataclasses.fields() for introspection and
-        converts all attributes.
-        """
-        result: Dict[str, Any] = {}
+        result: Dict[str, Any] = {'type': type(element).__name__}
+
         for field_ in fields(element):
             name: str = field_.name
-            field_.type
+
             value: Any = getattr(element, name)
+            if not isinstance(value, (int, float, str, NoneType)):
+                continue
+
             if value == field_.default:
                 continue
             if not isinstance(field_.default_factory,
                               type(MISSING)) and value == cast(
                                   Any, field_.default_factory)():
                 continue
-            result[name] = self.convert(value)
-        result['type'] = type(element).__name__
+            result[name] = value
+
+        if converted_attrs:
+            result['attrs'] = converted_attrs
+        if converted_style:
+            result['style'] = converted_style
+        if converted_tags:
+            result['tags'] = converted_tags
+        return result
+
+    def _convert_text_line_with_descendents(self, element: TextLine,
+                                            elements: Sequence[Any]) -> Any:
+        result = self._convert_element(element)
+        result['elements'] = elements
+        return result
+
+    def _convert_doc_content_with_descentdents(self, element: DocContent,
+                                               elements: Sequence[Any]) -> Any:
+        result = self._convert_element(element)
+        result['elements'] = elements
+        return result
+
+    def _convert_document_with_descendents(self, element: Document,
+                                           shared_data: Any,
+                                           content: Any) -> Any:
+        result = self._convert_element(element)
+        result['content'] = content
+        result['shared_data'] = shared_data
+        return result
+
+    def _convert_table_with_descendents(
+            self, element: Table, elements: Sequence[Sequence[Any]]) -> Any:
+        result = self._convert_element(element)
+        result['elements'] = elements
+        return result
+
+    def _convert_paragraph_with_descendents(self, element: Paragraph,
+                                            elements: Sequence[Any]) -> Any:
+        result = self._convert_element(element)
+        result['elements'] = elements
+        return result
+
+    def _convert_notes_appendix_with_descendents(
+            self, element: NotesAppendix, elements: Sequence[Any]) -> Any:
+        result = self._convert_element(element)
+        result['elements'] = elements
+        return result
+
+    def _convert_bullet_item_with_descendents(self, element: BulletItem,
+                                              elements: Sequence[Any],
+                                              nested: Sequence[Any]) -> Any:
+        result: Dict[str, Any] = self._convert_paragraph(element)
+        result['elements'] = elements
+        if nested:
+            result['nested'] = nested
+        return result
+
+    def _convert_bullet_list_with_descendents(self, element: BulletList,
+                                              items: Sequence[Any]) -> Any:
+        result = self._convert_element(element)
+        result['items'] = items
+        return result
+
+    def _convert_section_with_descendents(self, element: Section,
+                                          heading: Any | None,
+                                          content: Sequence[Any]) -> Any:
+        result = self._convert_element(element)
+        if heading:
+            result['heading'] = heading
+        result['content'] = content
+        return result
+
+    def _convert_shared_data(self, element: SharedData) -> Any:
+        converted_rules = {
+            k: {
+                k2: v2 for k2, v2 in sorted(v.items())
+            } for k, v in sorted(element.style_rules.items())
+        }
+
+        result = self._convert_element(element)
+        if converted_rules:
+            result['style_rules'] = converted_rules
         return result
 
 
@@ -527,51 +677,53 @@ class RawTextConverter(ConverterBase[str]):
         """Convert text lines, assuming each line already ends with newline."""
         return "".join(self.convert(element2) for element2 in element.elements)
 
-    def _convert_doc_content(self, element: DocContent) -> str:
+    def _convert_doc_content_with_descentdents(self, element: DocContent,
+                                               elements: Sequence[str]) -> str:
         """Convert doc content, ensuring structural elements are separated."""
-        return "".join(
-            _ensure_newline(self.convert(element2))
-            for element2 in element.elements)
+        return "".join(_ensure_newline(element2) for element2 in elements)
 
-    def _convert_document(self, element: Document) -> str:
-        return self.convert(element.content)
+    def _convert_document_with_descendents(self, element: Document,
+                                           shared_data: str,
+                                           content: str) -> str:
+        return content
 
-    def _convert_table(self, element: Table) -> str:
+    def _convert_table_with_descendents(
+            self, element: Table, elements: Sequence[Sequence[str]]) -> str:
         r"""Convert a table.
 
         Use '\t' to mark cell boundaries, '\v' for row boundaries.
         """
-        return "\v".join("\t".join(self.convert(c)
-                                   for c in row)
-                         for row in element.elements) + "\n"
+        return "\v".join("\t".join(row) for row in elements) + "\n"
 
-    def _convert_paragraph(self, element: Paragraph) -> str:
-        return "".join(self.convert(e) for e in element.elements)
+    def _convert_paragraph_with_descendents(self, element: Paragraph,
+                                            elements: Sequence[str]) -> str:
+        return "".join(elements)
 
-    def _convert_notes_appendix(self, element: NotesAppendix) -> str:
-        return "".join(
-            _ensure_newline(self.convert(e)) for e in element.elements)
+    def _convert_notes_appendix_with_descendents(
+            self, element: NotesAppendix, elements: Sequence[str]) -> str:
+        return "".join(_ensure_newline(element2) for element2 in elements)
 
-    def _convert_bullet_item(self, element: BulletItem) -> str:
+    def _convert_bullet_item_with_descendents(self, element: BulletItem,
+                                              elements: Sequence[str],
+                                              nested: Sequence[str]) -> str:
         """Convert and indent bullet items, including nested items."""
         indent_spc = ("  " * (element.level or 0))
-        text = "".join(self.convert(e) for e in element.elements)
+        text = "".join(elements)
         text = _ensure_newline('\n'.join(
             f'{indent_spc}{line}' for line in text.split('\n')))
-        nested_text = "".join(
-            _ensure_newline(self._convert_bullet_item(item))
-            for item in element.nested)
+        nested_text = "".join(_ensure_newline(item) for item in nested)
         return f'{text}{nested_text}'
 
-    def _convert_bullet_list(self, element: BulletList) -> str:
-        return "".join(
-            _ensure_newline(self.convert(item)) for item in element.items)
+    def _convert_bullet_list_with_descendents(self, element: BulletList,
+                                              items: Sequence[str]) -> str:
+        return "".join(_ensure_newline(item) for item in items)
 
-    def _convert_section(self, element: Section) -> str:
+    def _convert_section_with_descendents(self, element: Section,
+                                          heading: Optional[str],
+                                          content: Sequence[str]) -> str:
         """Convert a section, heading and content."""
-        heading_text = self.convert(element.heading) if element.heading else ''
-        content_text = "".join(
-            _ensure_newline(self.convert(item)) for item in element.content)
+        heading_text = heading or ''
+        content_text = "".join(_ensure_newline(item) for item in content)
 
         return f'{heading_text}\n{content_text}\f'
 
