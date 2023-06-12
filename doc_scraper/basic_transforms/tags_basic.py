@@ -9,12 +9,21 @@ from typing import (
     cast,
     Iterable,
     Callable,
+    Mapping,
 )
 import dataclasses
+import re
 
 from doc_scraper import doc_struct
 from doc_scraper import help_docs
 from doc_scraper.doc_struct import Element
+
+
+def match_for(
+    *tags: str, pattern: re.Pattern[str] = re.compile('.+')
+) -> Mapping[str, re.Pattern[str]]:
+    """Create tag matchers from sequence."""
+    return {item: pattern for item in tags}
 
 
 class ElementFilterConverter(
@@ -123,6 +132,19 @@ class ElementFilterConverter(
         return self._filter(element, *elements)
 
 
+TagMatcherType = Mapping[str, re.Pattern[str]]
+
+TAG_MATCH_CONFIG_EXAMPLE = """
+  element_types:
+  - TextRun
+  - BulletItem
+  required_tags_sets:
+  - {"A": ".*", "C":"123"}
+  - {"D": ".*"}
+  rejected_tags: {'R': '.*'}
+"""
+
+
 @dataclasses.dataclass(kw_only=True)
 class TagMatchConfig():
     """Configuration for matching by tag."""
@@ -140,7 +162,7 @@ class TagMatchConfig():
             ]
         })
 
-    required_tag_sets: Sequence[Sequence[str]] = dataclasses.field(
+    required_tag_sets: Sequence[TagMatcherType] = dataclasses.field(
         default_factory=list,
         metadata={
             'help_text':
@@ -148,12 +170,12 @@ class TagMatchConfig():
                 'match to happen.',
             'help_samples': [
                 help_docs.RawSample(
-                    '\n- ["A","B"]  # matches if A and B present.\n' +
-                    '- ["C"]  # Or C alone.')
+                    '\n- ["A":".*","B":""]  # matches if A and B present.\n' +
+                    '- ["C":".*"]  # Or C alone.')
             ],
         })
-    rejected_tags: Sequence[str] = dataclasses.field(
-        default_factory=list,
+    rejected_tags: TagMatcherType = dataclasses.field(
+        default_factory=dict,
         metadata={
             'help_text':
                 'Tags that stop any match if present.',
@@ -161,21 +183,37 @@ class TagMatchConfig():
                               help_docs.RawSample('["X"]'))]
         })
 
+    def _match_all(self, tags: Mapping[str, str],
+                   match: TagMatcherType) -> bool:
+        for k, v in match.items():
+            if k not in tags:
+                return False
+            if not v.match(tags[k]):
+                return False
+        return True
+
+    def _match_any(self, tags: Mapping[str, str],
+                   match: TagMatcherType) -> bool:
+        for k, v in match.items():
+            if k not in tags:
+                continue
+            if v.match(tags[k]):
+                return True
+        return False
+
     def is_matching(self, element: doc_struct.Element) -> bool:
         """Check if an element matches."""
         if not isinstance(element, tuple(self.element_types)):
             return False
 
-        rejected_set = set(self.rejected_tags)
-        if element.tags & rejected_set:
+        if self._match_any(element.tags, self.rejected_tags):
             return False
 
         if not self.required_tag_sets:
             return True
 
         for accepting_tags in self.required_tag_sets:
-            accepting_set = set(accepting_tags)
-            if accepting_set.issubset(element.tags):
+            if self._match_all(element.tags, accepting_tags):
                 return True
         return False
 

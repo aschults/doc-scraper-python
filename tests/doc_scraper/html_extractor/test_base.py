@@ -27,7 +27,7 @@ class NodeTest(unittest.TestCase):
                     'style': style
                 },
                 'style': style_as_struct,
-                'tags': set(),
+                'tags': dict(),
             }, asdict(node.to_struct()))
 
     def test_repr(self):
@@ -37,7 +37,7 @@ class NodeTest(unittest.TestCase):
 
         self.assertEqual(
             "Frame(ParseContext()," +
-            "'Element(attrs={'k': 'val'}, style={'s': '111'}, tags=set())')",
+            "'Element(attrs={'k': 'val'}, style={'s': '111'}, tags={})')",
             repr(node))
 
     def test_eq(self):

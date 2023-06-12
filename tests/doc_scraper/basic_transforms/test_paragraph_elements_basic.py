@@ -136,19 +136,20 @@ class TestRegexReplacerTransform(unittest.TestCase):
     def test_simple_transform(self):
         """Transform a simple text, marked by tag."""
         config = paragraph_element_basic.RegexReplacerConfig(
-            match=tags_basic.TagMatchConfig(required_tag_sets=[['A']]),
+            match=tags_basic.TagMatchConfig(
+                required_tag_sets=[tags_basic.match_for('A')]),
             substitutions=[
                 paragraph_element_basic.RegexReplaceRule(regex=re.compile('.'),
                                                          substitute='X'),
             ])
 
         data = doc_struct.Paragraph(elements=[
-            doc_struct.TextRun(tags={'A'}, text='r1'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('A'), text='r1'),
             doc_struct.TextRun(text='r2'),
         ])
 
         expected = doc_struct.Paragraph(elements=[
-            doc_struct.TextRun(tags={'A'}, text='XX'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('A'), text='XX'),
             doc_struct.TextRun(text='r2'),
         ])
 

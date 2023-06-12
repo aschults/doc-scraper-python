@@ -31,11 +31,15 @@ from typing import (
 )
 
 from types import NoneType
-from collections.abc import Set
 
 from typing import Union
 from dataclasses import dataclass, fields, is_dataclass, field, MISSING
 import json
+
+
+def tags_for(*tags: str) -> Mapping[str, str]:
+    """Create tags more easily."""
+    return {item: '1' for item in tags}
 
 
 @dataclass(frozen=True, kw_only=True, eq=True)
@@ -53,7 +57,7 @@ class Element():
 
     attrs: Mapping[str, Any] = field(default_factory=dict)
     style: Mapping[str, str] = field(default_factory=dict)
-    tags: Set[str] = field(default_factory=set)
+    tags: Mapping[str, str] = field(default_factory=dict)
 
 
 _AsDictArg = Union[Element, Sequence[Any], Mapping[str, Any]]
@@ -90,8 +94,6 @@ def from_super(cls: Type[_R], parent: Element, **kwargs: Any) -> _R:
 @dataclass(frozen=True, kw_only=True, eq=True)
 class ParagraphElement(Element):
     """Common base for all elements directly in a paragraph."""
-
-    pass
 
 
 @dataclass(frozen=True, kw_only=True, eq=True)
@@ -551,7 +553,7 @@ class DictConverter(ConverterBase[Any]):
         """Convert an actual Element, or any subtype as fallback."""
         converted_attrs = {k: v for k, v in sorted(element.attrs.items())}
         converted_style = {k: v for k, v in sorted(element.style.items())}
-        converted_tags = {item: True for item in sorted(element.tags)}
+        converted_tags = {k: v for k, v in sorted(element.tags.items())}
 
         result: Dict[str, Any] = {'type': type(element).__name__}
 
@@ -707,7 +709,7 @@ class RawTextConverter(ConverterBase[str]):
                                               elements: Sequence[str],
                                               nested: Sequence[str]) -> str:
         """Convert and indent bullet items, including nested items."""
-        indent_spc = ("  " * (element.level or 0))
+        indent_spc = "  " * (element.level or 0)
         text = "".join(elements)
         text = _ensure_newline('\n'.join(
             f'{indent_spc}{line}' for line in text.split('\n')))

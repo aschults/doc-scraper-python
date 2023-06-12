@@ -50,11 +50,11 @@ class StyleTagTest(unittest.TestCase):
             shared_data=doc_struct.SharedData(),
             content=doc_struct.DocContent(elements=[
                 doc_struct.Paragraph(
-                    tags={'t1'},
+                    tags=doc_struct.tags_for('t1'),
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
-                            tags={'t1'},
+                            tags=doc_struct.tags_for('t1'),
                             style={
                                 'b': 'z',
                                 'a': 'x'
@@ -68,7 +68,7 @@ class StyleTagTest(unittest.TestCase):
                                  elements=[[
                                      doc_struct.DocContent(
                                          style={'a': 'x'},
-                                         tags={'t1'},
+                                         tags=doc_struct.tags_for('t1'),
                                          elements=[
                                              doc_struct.BulletItem(
                                                  elements=[
@@ -83,7 +83,7 @@ class StyleTagTest(unittest.TestCase):
                                  ]]),
                 doc_struct.BulletList(items=[
                     doc_struct.BulletItem(
-                        tags={'t1'},
+                        tags=doc_struct.tags_for('t1'),
                         style={'a': 'x'},
                         elements=[doc_struct.Chip(text='ccc')],
                         list_type='li',
@@ -103,11 +103,14 @@ class StyleTagTest(unittest.TestCase):
             shared_data=doc_struct.SharedData(),
             content=doc_struct.DocContent(elements=[
                 doc_struct.Paragraph(
-                    tags={'t2'},
+                    tags=doc_struct.tags_for('t2'),
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
-                            tags={'t2', 't4'},
+                            tags={
+                                't2': '1',
+                                't4': '1'
+                            },
                             style={
                                 'b': 'z',
                                 'a': 'x'
@@ -117,17 +120,17 @@ class StyleTagTest(unittest.TestCase):
                     ],
                 ),
                 doc_struct.Table(
-                    tags={'t3'},
+                    tags=doc_struct.tags_for('t3'),
                     style={'a': 'y'},
                     elements=[[
                         doc_struct.DocContent(
                             style={'a': 'x'},
-                            tags={'t2'},
+                            tags=doc_struct.tags_for('t2'),
                             elements=[
                                 doc_struct.BulletItem(
                                     elements=[
                                         doc_struct.TextRun(
-                                            tags={'t4'},
+                                            tags=doc_struct.tags_for('t4'),
                                             style={'b': 'z'},
                                             text='yyy')
                                     ],
@@ -137,7 +140,7 @@ class StyleTagTest(unittest.TestCase):
                     ]]),
                 doc_struct.BulletList(items=[
                     doc_struct.BulletItem(
-                        tags={'t2'},
+                        tags=doc_struct.tags_for('t2'),
                         style={'a': 'x'},
                         elements=[doc_struct.Chip(text='ccc')],
                         list_type='li',
@@ -164,7 +167,7 @@ class StyleTagTest(unittest.TestCase):
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
-                            tags={'t5'},
+                            tags=doc_struct.tags_for('t5'),
                             style={
                                 'b': 'z',
                                 'a': 'x'
@@ -190,7 +193,7 @@ class StyleTagTest(unittest.TestCase):
                                  ]]),
                 doc_struct.BulletList(items=[
                     doc_struct.BulletItem(
-                        tags={'t5'},
+                        tags=doc_struct.tags_for('t5'),
                         style={'a': 'x'},
                         elements=[doc_struct.Chip(text='ccc')],
                         list_type='li',
@@ -213,7 +216,7 @@ class StyleTagTest(unittest.TestCase):
             shared_data=doc_struct.SharedData(),
             content=doc_struct.DocContent(elements=[
                 doc_struct.Paragraph(
-                    tags={'t6'},
+                    tags=doc_struct.tags_for('t6'),
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
@@ -229,7 +232,7 @@ class StyleTagTest(unittest.TestCase):
                                  elements=[[
                                      doc_struct.DocContent(
                                          style={'a': 'x'},
-                                         tags={'t6'},
+                                         tags=doc_struct.tags_for('t6'),
                                          elements=[
                                              doc_struct.BulletItem(
                                                  elements=[
@@ -243,7 +246,7 @@ class StyleTagTest(unittest.TestCase):
                                  ]]),
                 doc_struct.BulletList(items=[
                     doc_struct.BulletItem(
-                        tags={'t6'},
+                        tags=doc_struct.tags_for('t6'),
                         style={'a': 'x'},
                         elements=[doc_struct.Chip(text='ccc')],
                         list_type='li',
@@ -271,7 +274,7 @@ class StyleTagTest(unittest.TestCase):
                     style={'a': 'x'},
                     elements=[
                         doc_struct.TextRun(
-                            tags={'t7'},
+                            tags=doc_struct.tags_for('t7'),
                             style={
                                 'b': 'z',
                                 'a': 'x'

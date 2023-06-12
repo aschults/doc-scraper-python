@@ -8,6 +8,7 @@ from parameterized import parameterized  # type: ignore
 
 from doc_scraper.basic_transforms import paragraph_basic
 from doc_scraper import doc_struct
+from doc_scraper.basic_transforms import tags_basic
 
 
 class TextBreakTest(unittest.TestCase):
@@ -207,7 +208,8 @@ class TestTagMergePolicy(unittest.TestCase):
         (
             'matching relaxed match',
             paragraph_basic.TagMergeConfig(
-                element_types=[doc_struct.ParagraphElement]),
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=[doc_struct.ParagraphElement]),),
             doc_struct.TextRun(text='a'),
             doc_struct.Chip(text='b'),
             'ab',
@@ -215,7 +217,8 @@ class TestTagMergePolicy(unittest.TestCase):
         (
             'matching relaxed match',
             paragraph_basic.TagMergeConfig(
-                element_types=[doc_struct.ParagraphElement]),
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=[doc_struct.ParagraphElement]),),
             doc_struct.Link(text='a', url='x'),
             doc_struct.Chip(text='b', url='x'),
             'ab',
@@ -224,7 +227,9 @@ class TestTagMergePolicy(unittest.TestCase):
             'matching relaxed match',
             paragraph_basic.TagMergeConfig(
                 merge_as_text_run=True,
-                element_types=[doc_struct.ParagraphElement]),
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=[doc_struct.ParagraphElement]),
+            ),
             doc_struct.Link(text='a', url='x'),
             doc_struct.Chip(text='b', url='x'),
             'ab',
@@ -232,63 +237,80 @@ class TestTagMergePolicy(unittest.TestCase):
         (
             'matching text line',
             paragraph_basic.TagMergeConfig(
-                element_types=[doc_struct.ParagraphElement]),
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=[doc_struct.ParagraphElement]),),
             doc_struct.TextLine(elements=[doc_struct.TextRun(text='a')]),
             doc_struct.TextLine(elements=[doc_struct.Chip(text='b')]),
             'ab',
         ),
         (
             'matching single tag',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']]),
-            doc_struct.TextRun(tags={'x'}, text='a'),
-            doc_struct.TextRun(tags={'x'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
             'ab',
         ),
         (
             'matching single tag with extra',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']]),
-            doc_struct.TextRun(tags={'x', 'y'}, text='a'),
-            doc_struct.TextRun(tags={'x', 'z'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'z'), text='b'),
             'ab',
         ),
         (
             'matching single tag, after non-match',
             paragraph_basic.TagMergeConfig(
-                acceptable_tag_sets=[['x', 'y'], ['x']]),
-            doc_struct.TextRun(tags={'x'}, text='a'),
-            doc_struct.TextRun(tags={'x'}, text='b'),
+                match_element=tags_basic.TagMatchConfig(required_tag_sets=[
+                    tags_basic.match_for('x', 'y'),
+                    tags_basic.match_for('x'),
+                ]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
             'ab',
         ),
         (
             'matching single tag, after first match only',
             paragraph_basic.TagMergeConfig(
-                acceptable_tag_sets=[['x', 'y'], ['x']]),
-            doc_struct.TextRun(tags={'x', 'y'}, text='a'),
-            doc_struct.TextRun(tags={'x'}, text='b'),
+                match_element=tags_basic.TagMatchConfig(required_tag_sets=[
+                    tags_basic.match_for('x', 'y'),
+                    tags_basic.match_for('x'),
+                ]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
             'ab',
         ),
         (
             'matching tag set',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x', 'y']]),
-            doc_struct.TextRun(tags={'x', 'y'}, text='a'),
-            doc_struct.TextRun(tags={'x', 'y'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x', 'y')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y'), text='b'),
             'ab',
         ),
         (
             'matching tag set plus matching tag',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x', 'y']]),
-            doc_struct.TextRun(tags={'x', 'y', 'z'}, text='a'),
-            doc_struct.TextRun(tags={'x', 'y', 'z'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x', 'y')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y', 'z'),
+                               text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y', 'z'),
+                               text='b'),
             'ab',
         ),
         (
             'Non-matching rejected tag',
             paragraph_basic.TagMergeConfig(
-                acceptable_tag_sets=[['x']],
-                rejected_tags=['r'],
-            ),
-            doc_struct.TextRun(tags={'x'}, text='a'),
-            doc_struct.TextRun(tags={'x'}, text='b'),
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')],
+                    rejected_tags=tags_basic.match_for('r')),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
             'ab',
         ),
     ])
@@ -312,104 +334,126 @@ class TestTagMergePolicy(unittest.TestCase):
     @parameterized.expand([  # type: ignore
         (
             'Non-matching types',
-            paragraph_basic.TagMergeConfig(element_types=[doc_struct.Chip]),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=[doc_struct.Chip])),
             doc_struct.TextRun(text='a'),
             doc_struct.TextRun(text='b'),
         ),
         (
             'Non-matching second type',
-            paragraph_basic.TagMergeConfig(),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=[doc_struct.TextRun]),),
             doc_struct.TextRun(text='a'),
             doc_struct.Chip(text='b'),
         ),
         (
             'Non-matching first type',
-            paragraph_basic.TagMergeConfig(),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=[doc_struct.TextRun]),),
             doc_struct.Chip(text='a'),
             doc_struct.TextRun(text='b'),
         ),
         (
             'Non-matching relaxed match different URLs',
             paragraph_basic.TagMergeConfig(
-                element_types=[doc_struct.ParagraphElement]),
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=[doc_struct.ParagraphElement]),),
             doc_struct.Link(text='a', url='x'),
             doc_struct.Chip(text='b', url='y'),
         ),
         (
             'Missing tags',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']]),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')]),),
             doc_struct.TextRun(text='a'),
             doc_struct.TextRun(text='b'),
         ),
         (
             'Missing 2nd tags',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']]),
-            doc_struct.TextRun(tags={'x'}, text='a'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(text='b'),
         ),
         (
             'Missing 1st tag',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']]),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')]),),
             doc_struct.TextRun(text='a'),
-            doc_struct.TextRun(tags={'x'}, text='b'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
         ),
         (
             'unrelated, matching tags',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']]),
-            doc_struct.TextRun(tags={'y'}, text='a'),
-            doc_struct.TextRun(tags={'z'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('y'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('z'), text='b'),
         ),
         (
             'Only 1st matching',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']]),
-            doc_struct.TextRun(tags={'x'}, text='a'),
-            doc_struct.TextRun(tags={'z'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('z'), text='b'),
         ),
         (
             'Only 2nd matching',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']]),
-            doc_struct.TextRun(tags={'y'}, text='a'),
-            doc_struct.TextRun(tags={'x'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('y'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
         ),
         (
             'Tag set not subset',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x', 'y']]),
-            doc_struct.TextRun(tags={'x'}, text='a'),
-            doc_struct.TextRun(tags={'x'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x', 'y')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
         ),
         (
             'Tag set not not intersecting',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x', 'y']]),
-            doc_struct.TextRun(tags={'x', 'z'}, text='a'),
-            doc_struct.TextRun(tags={'y', 'z'}, text='b'),
-        ),
-        (
-            'Tag set multiple disjoint',
             paragraph_basic.TagMergeConfig(
-                acceptable_tag_sets=[['x', 'y'], ['u', 'v']]),
-            doc_struct.TextRun(tags={'x', 'y'}, text='a'),
-            doc_struct.TextRun(tags={'u', 'v'}, text='b'),
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x', 'y')]),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'z'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('y', 'z'), text='b'),
         ),
         (
             'Rejected in 1st',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']],
-                                           rejected_tags=['r']),
-            doc_struct.TextRun(tags={'x', 'r'}, text='a'),
-            doc_struct.TextRun(tags={'x'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')],
+                    rejected_tags=tags_basic.match_for('r')),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'r'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
         ),
         (
             'Rejected in 2st',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']],
-                                           rejected_tags=['r']),
-            doc_struct.TextRun(tags={'x'}, text='a'),
-            doc_struct.TextRun(tags={'x', 'r'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')],
+                    rejected_tags=tags_basic.match_for('r')),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'r'), text='b'),
         ),
         (
             'Rejected in 2st',
-            paragraph_basic.TagMergeConfig(acceptable_tag_sets=[['x']],
-                                           rejected_tags=['q', 'r']),
-            doc_struct.TextRun(tags={'x'}, text='a'),
-            doc_struct.TextRun(tags={'x', 'r'}, text='b'),
+            paragraph_basic.TagMergeConfig(
+                match_element=tags_basic.TagMatchConfig(
+                    required_tag_sets=[tags_basic.match_for('x')],
+                    rejected_tags=tags_basic.match_for('r', 'q')),),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
+            doc_struct.TextRun(tags=doc_struct.tags_for('x', 'r'), text='b'),
         ),
     ])
     # pylint: disable=unused-argument

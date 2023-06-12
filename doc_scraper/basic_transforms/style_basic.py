@@ -169,7 +169,8 @@ class TaggingTransform(doc_transform.Transformation):
             self, element: doc_struct.Element) -> doc_struct.Element:
         """Transform (tag) all elements."""
         tags = self.matcher.get_tags(element)
-        new_tags = element.tags | tags
+        new_tags = dict(element.tags)
+        new_tags.update({item: '1' for item in tags})
 
         element = dataclasses.replace(element, tags=new_tags)
         return super()._transform_element_base(element)

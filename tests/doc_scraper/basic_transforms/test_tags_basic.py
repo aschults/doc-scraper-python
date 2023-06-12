@@ -9,7 +9,7 @@ from parameterized import parameterized  # type:ignore
 
 
 def _make_chip(tags: Sequence[str]) -> doc_struct.Element:
-    return doc_struct.Chip(tags=set(tags), text='blah')
+    return doc_struct.Chip(tags=doc_struct.tags_for(*tags), text='blah')
 
 
 class TestTagMatching(unittest.TestCase):
@@ -24,7 +24,9 @@ class TestTagMatching(unittest.TestCase):
 
     def test_single_tag_groups(self):
         """Test a match with a single required tag set."""
-        tag_match = tags_basic.TagMatchConfig(required_tag_sets=[['A', 'B']])
+        tag_match = tags_basic.TagMatchConfig(required_tag_sets=[
+            tags_basic.match_for('A', 'B'),
+        ])
         self.assertFalse(tag_match.is_matching(_make_chip([])))
         self.assertFalse(tag_match.is_matching(_make_chip(['X'])))
         self.assertFalse(tag_match.is_matching(_make_chip(['A'])))
@@ -33,8 +35,10 @@ class TestTagMatching(unittest.TestCase):
 
     def test_multi_tag_groups(self):
         """Test multiple (alternatively) required tag sets."""
-        tag_match = tags_basic.TagMatchConfig(
-            required_tag_sets=[['A', 'B'], ['C', 'D']])
+        tag_match = tags_basic.TagMatchConfig(required_tag_sets=[
+            tags_basic.match_for('A', 'B'),
+            tags_basic.match_for('C', 'D'),
+        ])
         self.assertFalse(tag_match.is_matching(_make_chip([])))
         self.assertFalse(tag_match.is_matching(_make_chip(['C'])))
         self.assertFalse(tag_match.is_matching(_make_chip(['A'])))
@@ -49,8 +53,9 @@ class TestTagMatching(unittest.TestCase):
 
     def test_tag_groups_with_reject(self):
         """Test matching with rejected tags."""
-        tag_match = tags_basic.TagMatchConfig(required_tag_sets=[['A', 'B']],
-                                              rejected_tags=['R'])
+        tag_match = tags_basic.TagMatchConfig(
+            required_tag_sets=[tags_basic.match_for('A', 'B')],
+            rejected_tags=tags_basic.match_for('R'))
         self.assertFalse(tag_match.is_matching(_make_chip([])))
         self.assertFalse(tag_match.is_matching(_make_chip(['R'])))
         self.assertFalse(tag_match.is_matching(_make_chip(['A', 'B', 'R'])))
@@ -59,7 +64,8 @@ class TestTagMatching(unittest.TestCase):
 
     def test_only_reject(self):
         """Test matching all, except rejected."""
-        tag_match = tags_basic.TagMatchConfig(rejected_tags=['R'])
+        tag_match = tags_basic.TagMatchConfig(
+            rejected_tags=tags_basic.match_for('R'))
         self.assertTrue(tag_match.is_matching(_make_chip([])))
         self.assertFalse(tag_match.is_matching(_make_chip(['R'])))
         self.assertFalse(tag_match.is_matching(_make_chip(['A', 'B', 'R'])))

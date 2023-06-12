@@ -52,7 +52,7 @@ class RegexReplacerConfig():
             'help_text':
                 'Constraints required for the substitution to happen.',
             'help_sampes': [
-                help_docs.RawSample('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+                help_docs.RawSample(tags_basic.TAG_MATCH_CONFIG_EXAMPLE)
             ]
         })
     substitutions: List[RegexReplaceRule] = dataclasses.field(

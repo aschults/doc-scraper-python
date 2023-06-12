@@ -6,6 +6,7 @@ import re
 from doc_scraper import doc_struct
 from doc_scraper import doc_transform
 from doc_scraper import help_docs
+from doc_scraper.basic_transforms import tags_basic
 
 
 def _break_single_text_run(
@@ -156,10 +157,7 @@ DEFAULT_MERGE_ELEMENTS: Sequence[Type[doc_struct.Element]] = [
 
 @dataclasses.dataclass(kw_only=True)
 class TagMergeConfig():
-    """Configuration for merging paragraph elements by tag.
-
-    Tags are stored in field `attrib`, by default under key "tags".
-    """
+    """Configuration for merging paragraph elements by tag."""
 
     merge_as_text_run: bool = dataclasses.field(
         default=False,
@@ -169,37 +167,14 @@ class TagMergeConfig():
             'help_samples': [('Default', False)]
         })
 
-    element_types: Sequence[Type[doc_struct.Element]] = dataclasses.field(
-        default_factory=lambda: list(DEFAULT_MERGE_ELEMENTS),
+    match_element: tags_basic.TagMatchConfig = dataclasses.field(
+        default_factory=tags_basic.TagMatchConfig,
         metadata={
             'help_docs':
-                'The element types to be tagged',
+                'Criteria to allow merge of subsequent tags.',
             'help_samples': [
-                ('Any paragraph element, e.g. TextRun',
-                 help_docs.RawSample('\n- ParagraphElement')),
-                ('Specifically only Chips and BulletItems',
-                 help_docs.RawSample('["Chips", "BulletItem"]')),
+                help_docs.RawSample(tags_basic.TAG_MATCH_CONFIG_EXAMPLE),
             ]
-        })
-    acceptable_tag_sets: Sequence[Sequence[str]] = dataclasses.field(
-        default_factory=list,
-        metadata={
-            'help_text':
-                'List of list of list of tags required for the ' +
-                'match to happen.',
-            'help_samples': [
-                help_docs.RawSample(
-                    '\n- ["A","B"]  # merge happens if A and B present.\n' +
-                    '- ["C"]  # Or C alone.')
-            ],
-        })
-    rejected_tags: Sequence[str] = dataclasses.field(
-        default_factory=list,
-        metadata={
-            'help_text':
-                'Tags that stop any match if present.',
-            'help_samples': [('No Elements tagged with X will get merged.',
-                              help_docs.RawSample('["X"]'))]
         })
 
 
@@ -225,25 +200,11 @@ class TagMergePolicy():
             if first.url != second.url:
                 return False
 
-        if not isinstance(first, tuple(self.config.element_types)):
+        if not self.config.match_element.is_matching(first):
             return False
-        if not isinstance(second, tuple(self.config.element_types)):
+        if not self.config.match_element.is_matching(second):
             return False
-
-        rejected_set = set(self.config.rejected_tags)
-        if first.tags & rejected_set:
-            return False
-        if second.tags & rejected_set:
-            return False
-
-        if not self.config.acceptable_tag_sets:
-            return True
-        shared_tags = first.tags & second.tags
-        for accepting_tags in self.config.acceptable_tag_sets:
-            accepting_set = set(accepting_tags)
-            if accepting_set.issubset(shared_tags):
-                return True
-        return False
+        return True
 
     def _create_merged(
             self, first: doc_struct.ParagraphElement,
@@ -257,6 +218,7 @@ class TagMergePolicy():
         if self.config.merge_as_text_run:
             return doc_struct.TextRun(attrs=first.attrs,
                                       style=first.style,
+                                      tags=first.tags,
                                       text=merged_text)
         elif isinstance(first, doc_struct.TextLine):
             if isinstance(second, doc_struct.TextLine):

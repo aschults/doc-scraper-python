@@ -144,12 +144,12 @@ class CommonFunctionsTest(unittest.TestCase):
 
     def test_as_dict_sets(self):
         """Test the from_super() function."""
-        element = doc_struct.Element(tags={'x', 'y'})
+        element = doc_struct.Element(tags=doc_struct.tags_for('x', 'y'))
         result = doc_struct.as_dict(element)
         self.assertEqual({
             'tags': {
-                'x': True,
-                'y': True
+                'x': '1',
+                'y': '1'
             },
             'type': 'Element'
         }, result)
