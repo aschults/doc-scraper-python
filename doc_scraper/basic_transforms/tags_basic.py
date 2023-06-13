@@ -17,6 +17,7 @@ import re
 from doc_scraper import doc_struct
 from doc_scraper import help_docs
 from doc_scraper.doc_struct import Element
+from doc_scraper import doc_transform
 
 
 def match_for(
@@ -132,8 +133,11 @@ class ElementFilterConverter(
         return self._filter(element, *elements)
 
 
+# Type used to match tags.
 TagMatcherType = Mapping[str, re.Pattern[str]]
 
+
+# Example config for TagMatchingConifg, to be used for help_docs.
 TAG_MATCH_CONFIG_EXAMPLE = """
   element_types:
   - TextRun
@@ -142,6 +146,18 @@ TAG_MATCH_CONFIG_EXAMPLE = """
   - {"A": ".*", "C":"123"}
   - {"D": ".*"}
   rejected_tags: {'R': '.*'}
+  required_style_sets:
+  - backgorund-color: "#ff0000"   # Match if background is red...
+    color: white                  # AND the text is white (both must match)
+  - font-weight: bold             # OR if text is bold text
+  exclude:
+  - color: .*green.*              # Don't match if the text is any green.
+  - color: blue                   # Also don't match if the text is blue.
+"""
+
+REQUIRED_STYLE_SET_EXAMPLE = """
+  - {font-size: 20pt, font-weight: bold}
+  - color: red
 """
 
 
@@ -183,8 +199,34 @@ class TagMatchConfig():
                               help_docs.RawSample('["X"]'))]
         })
 
+    required_style_sets: Sequence[Mapping[
+        str, re.Pattern[str]]] = dataclasses.field(
+            default_factory=list,
+            metadata={
+                'help_text':
+                    'Styles required for the tag to match. All need to match.',
+                'help_samples': [
+                    help_docs.RawSample(REQUIRED_STYLE_SET_EXAMPLE)
+                ]
+            })
+
+    rejected_styles: Mapping[str, re.Pattern[str]] = dataclasses.field(
+        default_factory=dict,
+        metadata={
+            'help_text':
+                'Styles that prevent matching. Only one needs to match.',
+            'help_samples': [help_docs.RawSample('\n  font-weight: 400')]
+        })
+
+    skip_style_quotes: bool = dataclasses.field(
+        default=True,
+        metadata={
+            'help_text': 'If set to True, quotes in style values are removed.'
+        })
+
     def _match_all(self, tags: Mapping[str, str],
                    match: TagMatcherType) -> bool:
+        """Return true if all of the tags match."""
         for k, v in match.items():
             if k not in tags:
                 return False
@@ -194,6 +236,7 @@ class TagMatchConfig():
 
     def _match_any(self, tags: Mapping[str, str],
                    match: TagMatcherType) -> bool:
+        """Return true if any of the tags match."""
         for k, v in match.items():
             if k not in tags:
                 continue
@@ -201,21 +244,46 @@ class TagMatchConfig():
                 return True
         return False
 
+    def _cleanup_style(self, value: str) -> str:
+        """Clean up the style value to make it comparable."""
+        if self.skip_style_quotes:
+            return value.strip()
+        return value.strip("'\" ")
+
+    def _is_required_rejected_matching(
+        self,
+        tags: Mapping[str, str],
+        required_sets: Sequence[TagMatcherType],
+        rejected_matchers: TagMatcherType,
+    ) -> bool:
+        """Match styles or tags based on required/rejected semantics."""
+        if self._match_any(tags, rejected_matchers):
+            return False
+
+        if not required_sets:
+            return True
+
+        for style_matcher in required_sets:
+            if self._match_all(tags, style_matcher):
+                return True
+
+        return False
+
     def is_matching(self, element: doc_struct.Element) -> bool:
         """Check if an element matches."""
         if not isinstance(element, tuple(self.element_types)):
             return False
 
-        if self._match_any(element.tags, self.rejected_tags):
+        if not self._is_required_rejected_matching(
+                element.tags, self.required_tag_sets, self.rejected_tags):
             return False
 
-        if not self.required_tag_sets:
-            return True
+        style = {k: self._cleanup_style(v) for k, v in element.style.items()}
+        if not self._is_required_rejected_matching(
+                style, self.required_style_sets, self.rejected_styles):
+            return False
 
-        for accepting_tags in self.required_tag_sets:
-            if self._match_all(element.tags, accepting_tags):
-                return True
-        return False
+        return True
 
     def match_descendents(
             self,
@@ -227,3 +295,51 @@ class TagMatchConfig():
             result.extend(filter_converter.convert(element))
 
         return result
+
+
+@dataclasses.dataclass(kw_only=True)
+class TaggingConfig():
+    """Configuration for matching and tagging elements."""
+
+    match_element: TagMatchConfig = dataclasses.field(
+        metadata={
+            'help_text':
+                'Criteria to match elements for tagging.',
+            'help_samples': [('',
+                              help_docs.RawSample(TAG_MATCH_CONFIG_EXAMPLE))]
+        })
+
+    tags: Mapping[str, str] = dataclasses.field(
+        metadata={'help_text': 'Tags to add'})
+
+
+class TaggingTransform(doc_transform.Transformation):
+    """Tag objects based on matched criteria."""
+
+    def __init__(
+            self,
+            config: TaggingConfig,
+            context: Optional[doc_transform.TransformationContext] = None):
+        """Construct an instance.
+
+        Args:
+            context: Optional, customized context.
+            config: Criteria to match elements.
+        """
+        super().__init__(context)
+        self.config = config
+
+    def _transform_element_base(
+            self, element: doc_struct.Element) -> doc_struct.Element:
+        """Transform (tag) all elements."""
+        if self.config.match_element.is_matching(element):
+            new_tags = dict(element.tags)
+            new_tags.update(self.config.tags)
+            element = dataclasses.replace(element, tags=new_tags)
+
+        return super()._transform_element_base(element)
+
+    @classmethod
+    def from_config(cls, config: TaggingConfig) -> 'TaggingTransform':
+        """Create an instance from config class."""
+        return TaggingTransform(config=config)

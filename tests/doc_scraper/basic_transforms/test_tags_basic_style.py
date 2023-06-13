@@ -1,9 +1,10 @@
 """Test the style tagging transformation."""
 
 import unittest
+import re
 
 from doc_scraper import doc_struct
-from doc_scraper.basic_transforms import style_basic
+from doc_scraper.basic_transforms import tags_basic
 
 doc = doc_struct.Document(
     shared_data=doc_struct.SharedData(),
@@ -91,9 +92,13 @@ class StyleTagTest(unittest.TestCase):
                 ])
             ]))
 
-        transform = style_basic.TaggingTransform()
-        transform.add_rule(
-            style_basic.SimpleStyleMatchRule(tag='t1', include={'a': 'x'}))
+        transform = tags_basic.TaggingTransform(
+            config=tags_basic.TaggingConfig(
+                tags=doc_struct.tags_for('t1'),
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
+                    'a': re.compile('x')
+                }],),
+            ))
         self.assertEqual(doc_struct.as_dict(expected),
                          doc_struct.as_dict(transform(doc)))
 
@@ -148,15 +153,27 @@ class StyleTagTest(unittest.TestCase):
                 ])
             ]))
 
-        transform = style_basic.TaggingTransform()
-        transform.add_rule(
-            style_basic.SimpleStyleMatchRule(tag='t2', include={'a': 'x'}))
-        transform.add_rule(
-            style_basic.SimpleStyleMatchRule(tag='t3', include={'a': 'y'}))
-        transform.add_rule(
-            style_basic.SimpleStyleMatchRule(tag='t4', include={'b': 'z'}))
-        self.assertEqual(doc_struct.as_dict(expected),
-                         doc_struct.as_dict(transform(doc)))
+        transform1 = tags_basic.TaggingTransform(
+            config=tags_basic.TaggingConfig(
+                tags=doc_struct.tags_for('t2'),
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
+                    'a': re.compile('x')
+                }],)))
+        transform2 = tags_basic.TaggingTransform(
+            config=tags_basic.TaggingConfig(
+                tags=doc_struct.tags_for('t3'),
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
+                    'a': re.compile('y')
+                }],)))
+        transform3 = tags_basic.TaggingTransform(
+            config=tags_basic.TaggingConfig(
+                tags=doc_struct.tags_for('t4'),
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
+                    'b': re.compile('z')
+                }],)))
+        self.assertEqual(
+            doc_struct.as_dict(expected),
+            doc_struct.as_dict(transform3(transform2(transform1(doc)))))
 
     def test_type_specific(self):
         """Test tagging constrained to doc structure types."""
@@ -201,12 +218,17 @@ class StyleTagTest(unittest.TestCase):
                 ])
             ]))
 
-        transform = style_basic.TaggingTransform()
-        transform.add_rule(
-            style_basic.SimpleStyleMatchRule(
-                tag='t5',
-                include={'a': 'x'},
-                element_types={doc_struct.TextRun, doc_struct.BulletItem}))
+        transform = tags_basic.TaggingTransform(
+            config=tags_basic.TaggingConfig(
+                tags=doc_struct.tags_for('t5'),
+                match_element=tags_basic.TagMatchConfig(
+                    required_style_sets=[{
+                        'a': re.compile('x')
+                    }],
+                    element_types=[
+                        doc_struct.TextRun,
+                        doc_struct.BulletItem,
+                    ])))
         self.assertEqual(doc_struct.as_dict(expected),
                          doc_struct.as_dict(transform(doc)))
 
@@ -254,11 +276,14 @@ class StyleTagTest(unittest.TestCase):
                 ])
             ]))
 
-        transform = style_basic.TaggingTransform()
-        transform.add_rule(
-            style_basic.SimpleStyleMatchRule(tag='t6',
-                                             include={'a': 'x'},
-                                             exclude={'b': 'z'}))
+        transform = tags_basic.TaggingTransform(
+            config=tags_basic.TaggingConfig(
+                tags=doc_struct.tags_for('t6'),
+                match_element=tags_basic.TagMatchConfig(
+                    required_style_sets=[{
+                        'a': re.compile('x')
+                    }],
+                    rejected_styles={'b': re.compile('z')})))
         self.assertEqual(doc_struct.as_dict(expected),
                          doc_struct.as_dict(transform(doc)))
 
@@ -307,12 +332,12 @@ class StyleTagTest(unittest.TestCase):
                 ])
             ]))
 
-        transform = style_basic.TaggingTransform()
-        transform.add_rule(
-            style_basic.SimpleStyleMatchRule(tag='t7',
-                                             include={
-                                                 'a': 'x',
-                                                 'b': 'z'
-                                             }))
+        transform = tags_basic.TaggingTransform(
+            config=tags_basic.TaggingConfig(
+                tags=doc_struct.tags_for('t7'),
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
+                    'a': re.compile('x'),
+                    'b': re.compile('z')
+                }])))
         self.assertEqual(doc_struct.as_dict(expected),
                          doc_struct.as_dict(transform(doc)))

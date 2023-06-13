@@ -7,7 +7,7 @@ from doc_scraper import doc_transform as transform_base
 from doc_scraper.basic_transforms import bullets_basic
 from doc_scraper.basic_transforms import paragraph_basic
 from doc_scraper.basic_transforms import sections_basic
-from doc_scraper.basic_transforms import style_basic
+from doc_scraper.basic_transforms import tags_basic
 from doc_scraper.basic_transforms import elements_basics
 from doc_scraper.basic_transforms import paragraph_element_basic
 
@@ -80,9 +80,9 @@ def get_default_builder() -> TransformBuilder:
         help_doc='Rearrange the doc to match the hierarchy of headings.',
     )
     default_builder.register(
-        'tag_by_style',
-        style_basic.TaggingTransform.from_config,
-        help_doc='Add tags to any element based on their styles',
+        'tag_by_match',
+        tags_basic.TaggingTransform.from_config,
+        help_doc='Add tags to any element if they match the criteria.',
     )
 
     default_builder.register(
