@@ -1,11 +1,13 @@
 """Test the basic transformations for all elements."""
 
-from typing import Sequence, Callable, Any
+from typing import Sequence, Callable, Any, Mapping
 import unittest
+import re
+
+from parameterized import parameterized  # type:ignore
 
 from doc_scraper.basic_transforms import tags_basic
 from doc_scraper import doc_struct
-from parameterized import parameterized  # type:ignore
 
 
 def _make_chip(tags: Sequence[str]) -> doc_struct.Element:
@@ -210,3 +212,138 @@ class TestFilterConversion(unittest.TestCase):
         """Test multiple filtering scenarios."""
         converter = tags_basic.ElementFilterConverter(filter_func)
         self.assertSameElements(expected, converter.convert(data))
+
+
+class TagUpdateTest(unittest.TestCase):
+    """Check UpdateTestConfig updating element tags."""
+
+    @parameterized.expand([  # type: ignore
+        (
+            'add to empty',
+            tags_basic.TagUpdateConfig(add={'x': 'a'}),
+            {},
+            {
+                'x': 'a'
+            },
+        ),
+        (
+            'override existing',
+            tags_basic.TagUpdateConfig(add={'x': 'a'}),
+            {
+                'x': 'c',
+                'y': 'd'
+            },
+            {
+                'x': 'a',
+                'y': 'd',
+            },
+        ),
+        (
+            'remove single',
+            tags_basic.TagUpdateConfig(remove=['x']),
+            {
+                'x': 'c',
+                'y': 'd'
+            },
+            {
+                'y': 'd',
+            },
+        ),
+        (
+            'remove non-matching',
+            tags_basic.TagUpdateConfig(remove=['b']),
+            {
+                'x': 'c',
+                'y': 'd'
+            },
+            {
+                'x': 'c',
+                'y': 'd',
+            },
+        ),
+        (
+            'replace all',
+            tags_basic.TagUpdateConfig(add={'u': 'a'}, remove=['*']),
+            {
+                'x': 'c',
+                'y': 'd'
+            },
+            {
+                'u': 'a',
+            },
+        ),
+    ])
+    # pylint: disable=unused-argument
+    def test_updates(self, summary: str, config: tags_basic.TagUpdateConfig,
+                     data: Mapping[str, str], expected: Mapping[str, str]):
+        """Test variants of tag updates."""
+        element = doc_struct.Element(tags=data)
+        result = config.update_tags(element)
+        self.assertEqual(expected, result.tags)
+
+
+class TextMatchTest(unittest.TestCase):
+    """Test text field matching."""
+
+    @parameterized.expand([  # type: ignore
+        (
+            'constant value',
+            tags_basic.TagMatchConfig(element_expressions=[
+                tags_basic.ElementExpressionMatchConfig(
+                    expr='1', regex_match=re.compile(r'\d'))
+            ]),
+            doc_struct.TextRun(text='blah'),
+        ),
+        (
+            'field',
+            tags_basic.TagMatchConfig(element_expressions=[
+                tags_basic.ElementExpressionMatchConfig(
+                    expr='_{e.text}_', regex_match=re.compile('_blah_'))
+            ]),
+            doc_struct.TextRun(text='blah'),
+        ),
+    ])
+    def test_positive_match(self, summary: str,
+                            config: tags_basic.TagMatchConfig,
+                            data: doc_struct.Element):
+        """Test matching cases."""
+        self.assertTrue(config.is_matching(data))
+
+    @parameterized.expand([  # type: ignore
+        (
+            'constant value non matching',
+            tags_basic.TagMatchConfig(element_expressions=[
+                tags_basic.ElementExpressionMatchConfig(
+                    expr='x', regex_match=re.compile(r'\d'))
+            ]),
+            doc_struct.TextRun(text='blah'),
+        ),
+        (
+            'missing attrib key error',
+            tags_basic.TagMatchConfig(element_expressions=[
+                tags_basic.ElementExpressionMatchConfig(expr='{bad_attrib}',
+                                                        regex_match=re.compile(
+                                                            r'\d'),
+                                                        ignore_key_errors=True)
+            ]),
+            doc_struct.TextRun(text='blah'),
+        ),
+    ])
+    def test_negative_match(self, summary: str,
+                            config: tags_basic.TagMatchConfig,
+                            data: doc_struct.Element):
+        """Test non-matching cases."""
+        self.assertFalse(config.is_matching(data))
+
+    def test_aggregated_text(self):
+        """Test matching on text aggregated from descendents."""
+        data = doc_struct.TextLine(elements=[
+            doc_struct.TextRun(text='abc '),
+            doc_struct.TextRun(text='def'),
+        ])
+        self.assertTrue(
+            tags_basic.TagMatchConfig(
+                aggregated_text_regex=re.compile('abc def')).is_matching(data))
+        self.assertFalse(
+            tags_basic.TagMatchConfig(
+                aggregated_text_regex=re.compile('abcXdef')).is_matching(data))

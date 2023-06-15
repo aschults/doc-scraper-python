@@ -7,16 +7,17 @@ from typing import (
     Any,
     List,
     cast,
+    Dict,
     Iterable,
     Callable,
     Mapping,
+    TypeVar,
 )
 import dataclasses
 import re
 
 from doc_scraper import doc_struct
 from doc_scraper import help_docs
-from doc_scraper.doc_struct import Element
 from doc_scraper import doc_transform
 
 
@@ -69,7 +70,8 @@ class ElementFilterConverter(
         result.extend(self._flatten_list(*descendents))
         return result
 
-    def _convert_element(self, element: Element) -> Sequence[Element]:
+    def _convert_element(
+            self, element: doc_struct.Element) -> Sequence[doc_struct.Element]:
         """Check for elements without descendents."""
         return self._filter(element)
 
@@ -136,7 +138,6 @@ class ElementFilterConverter(
 # Type used to match tags.
 TagMatcherType = Mapping[str, re.Pattern[str]]
 
-
 # Example config for TagMatchingConifg, to be used for help_docs.
 TAG_MATCH_CONFIG_EXAMPLE = """
   element_types:
@@ -160,10 +161,69 @@ REQUIRED_STYLE_SET_EXAMPLE = """
   - color: red
 """
 
+# All types that contain a text attribute.
+TEXT_ELEMENT_TYPES = (
+    doc_struct.Chip,
+    doc_struct.TextRun,
+    doc_struct.Link,
+    doc_struct.Reference,
+    doc_struct.ReferenceTarget,
+)
+# All element types that have a url attribute.
+URL_ELEMENT_TYPES = (
+    doc_struct.Link,
+    doc_struct.Reference,
+)
+
+
+@dataclasses.dataclass(kw_only=True)
+class ElementExpressionMatchConfig():
+    """Match expressions (Python format) of elements."""
+
+    expr: str = dataclasses.field(
+        metadata={
+            'help_docs':
+                'The expression (format interpolated) to match',
+            'help_samples': [
+                ('Element text, followed by url from element(e)',
+                 '{e.text}--{e.url}'),
+                ('Grab value of tag "tag1"', '{e.tags[tag1]}'),
+            ]
+        })
+
+    regex_match: re.Pattern[str] = dataclasses.field(metadata={
+        'help_docs': 'The regex against which to match the expression',
+    })
+
+    ignore_key_errors: bool = dataclasses.field(
+        default=False,
+        metadata={
+            'help_docs':
+                'If set to true, KeyErrors are ignored and considered ' +
+                'non-matching',
+        })
+
+    def is_matching(self, element: doc_struct.Element) -> bool:
+        """Check if an element matches."""
+        try:
+            expanded = self.expr.format(e=element)
+        except KeyError as exc:
+            if self.ignore_key_errors:
+                return False
+            raise exc
+
+        if not self.regex_match.match(expanded):
+            return False
+        return True
+
 
 @dataclasses.dataclass(kw_only=True)
 class TagMatchConfig():
     """Configuration for matching by tag."""
+
+    def __post_init__(self):
+        """Add the text converter in post init."""
+        self._text_converter = doc_struct.RawTextConverter()
 
     element_types: Sequence[Type[doc_struct.Element]] = dataclasses.field(
         default_factory=lambda: [doc_struct.Element],
@@ -224,6 +284,36 @@ class TagMatchConfig():
             'help_text': 'If set to True, quotes in style values are removed.'
         })
 
+    aggregated_text_regex: Optional[re.Pattern[str]] = dataclasses.field(
+        default=None,
+        metadata={
+            'help_text':
+                'The Python regex to match with element\'s ' +
+                'text representation.',
+            'help_sampes': [r'some text\s+in doc']
+        })
+
+    element_expressions: Sequence[
+        ElementExpressionMatchConfig] = dataclasses.field(
+            default_factory=list,
+            metadata={
+                'help_text': 'List of expressions to interpolate and match.',
+            })
+
+    def _is_text_matching(self, element: doc_struct.Element) -> bool:
+        """Check if an element matches."""
+        if self.element_expressions:
+            for item in self.element_expressions:
+                if not item.is_matching(element):
+                    return False
+
+        if self.aggregated_text_regex:
+            if not self.aggregated_text_regex.match(
+                    self._text_converter.convert(element)):
+                return False
+
+        return True
+
     def _match_all(self, tags: Mapping[str, str],
                    match: TagMatcherType) -> bool:
         """Return true if all of the tags match."""
@@ -283,6 +373,9 @@ class TagMatchConfig():
                 style, self.required_style_sets, self.rejected_styles):
             return False
 
+        if not self._is_text_matching(element):
+            return False
+
         return True
 
     def match_descendents(
@@ -297,6 +390,54 @@ class TagMatchConfig():
         return result
 
 
+# Type parameter to match any element type in update_tags.
+_T = TypeVar('_T', bound=doc_struct.Element)
+
+# Sample YAML for Tag update config.
+DOC_HELP_TAG_UPDATE_CONFIG_SAMPLE = """
+  add: { "tagX": "valX", "tagY": "valY" }
+  remove: [ "*" ]
+"""
+
+
+@dataclasses.dataclass(kw_only=True)
+class TagUpdateConfig():
+    """Configuration for updating tags."""
+
+    add: Mapping[str, str] = dataclasses.field(
+        default_factory=dict,
+        metadata={
+            'help_text':
+                'A list of tags to add.',
+            'help_sampes': [
+                help_docs.RawSample('{"tag1": "val1", "tag2": "val2"}')
+            ]
+        })
+
+    remove: Sequence[str] = dataclasses.field(
+        default_factory=list,
+        metadata={
+            'help_text':
+                'A list of tags to remove. Use "*" to clear all.',
+            'help_sampes': [
+                help_docs.RawSample('["tag3", "tag4"]'),
+                ('Clear tags before adding', help_docs.RawSample('["*"]'))
+            ]
+        })
+
+    def update_tags(self, element: _T) -> _T:
+        """Update the passed element with the speficied tags."""
+        if '*' in self.remove:
+            new_tags: Dict[str, str] = {}
+        else:
+            new_tags = {
+                k: v for k, v in element.tags.items() if k not in self.remove
+            }
+
+        new_tags.update(self.add)
+        return dataclasses.replace(element, tags=new_tags)
+
+
 @dataclasses.dataclass(kw_only=True)
 class TaggingConfig():
     """Configuration for matching and tagging elements."""
@@ -309,8 +450,13 @@ class TaggingConfig():
                               help_docs.RawSample(TAG_MATCH_CONFIG_EXAMPLE))]
         })
 
-    tags: Mapping[str, str] = dataclasses.field(
-        metadata={'help_text': 'Tags to add'})
+    tags: TagUpdateConfig = dataclasses.field(
+        metadata={
+            'help_text':
+                'Updates for tags',
+            'help_samples':
+                [help_docs.RawSample(DOC_HELP_TAG_UPDATE_CONFIG_SAMPLE)]
+        })
 
 
 class TaggingTransform(doc_transform.Transformation):
@@ -333,9 +479,7 @@ class TaggingTransform(doc_transform.Transformation):
             self, element: doc_struct.Element) -> doc_struct.Element:
         """Transform (tag) all elements."""
         if self.config.match_element.is_matching(element):
-            new_tags = dict(element.tags)
-            new_tags.update(self.config.tags)
-            element = dataclasses.replace(element, tags=new_tags)
+            element = self.config.tags.update_tags(element)
 
         return super()._transform_element_base(element)
 
