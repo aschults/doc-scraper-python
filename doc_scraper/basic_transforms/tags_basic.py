@@ -151,7 +151,7 @@ TAG_MATCH_CONFIG_EXAMPLE = """
   - backgorund-color: "#ff0000"   # Match if background is red...
     color: white                  # AND the text is white (both must match)
   - font-weight: bold             # OR if text is bold text
-  exclude:
+  rejected_styles:
   - color: .*green.*              # Don't match if the text is any green.
   - color: blue                   # Also don't match if the text is blue.
 """

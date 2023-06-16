@@ -40,8 +40,7 @@ class DocLoaderConfig():
         metadata={
             'help_text':
                 'Google account username (as email), incl. service accounts.',
-            'help_samples':
-                'someone@gmail.com',
+            'help_samples': ['someone@gmail.com'],
         })
 
 
