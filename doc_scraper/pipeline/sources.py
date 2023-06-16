@@ -9,7 +9,6 @@ from typing import (Iterable, Iterator, List, Optional, Sequence)
 from doc_scraper import doc_struct
 from doc_scraper import html_extractor
 from doc_scraper import doc_loader
-from doc_scraper import help_docs
 
 from . import generic
 
@@ -29,11 +28,10 @@ class DocLoaderConfig():
         metadata={
             'help_text':
                 'Document IDs (part of the URL) to download.',
-            'help_samples': [
-                help_docs.RawSample(
-                    '\n- "1HZUlXXXXXX_SAMPLE1_XXXXXXIAQOa-xx9XxXx-xXxx"\n' +
-                    '- "1HZUlXXXXXX_SAMPLE2_XXXXXXIAQOa-xx9XxXx-xXxx"')
-            ],
+            'help_samples': [[
+                '1HZUlXXXXXX_SAMPLE1_XXXXXXIAQOa-xx9XxXx-xXxx',
+                '1HZUlXXXXXX_SAMPLE2_XXXXXXIAQOa-xx9XxXx-xXxx',
+            ]],
         })
     username: str = dataclasses.field(
         default='',
@@ -116,11 +114,8 @@ class FileLoaderConfig():
     doc_filenames: Sequence[str] = dataclasses.field(
         default_factory=list,
         metadata={
-            'help_text':
-                'Paths to local files.',
-            'help_samples': [
-                help_docs.RawSample('\n- /path/to/a\n- /path/to/b')
-            ]
+            'help_text': 'Paths to local files.',
+            'help_samples': [['/path/to/a', '/path/to/b']]
         })
 
 

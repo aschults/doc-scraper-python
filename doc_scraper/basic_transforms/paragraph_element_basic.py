@@ -35,13 +35,6 @@ class RegexReplaceRule():
         })
 
 
-REGEX_CONFIG_EXAMPLE = """
-- regex: "\\s+"
-  replacement: "_"
-  # Replace consequtive spaces with single underscore.
-"""
-
-
 @dataclasses.dataclass(kw_only=True)
 class RegexReplacerConfig():
     """Configuration for modifying text by regular expression."""
@@ -51,14 +44,13 @@ class RegexReplacerConfig():
         metadata={
             'help_text':
                 'Constraints required for the substitution to happen.',
-            'help_sampes': [
-                help_docs.RawSample(tags_basic.TAG_MATCH_CONFIG_EXAMPLE)
+            'help_samples': [
+                help_docs.ClassBasedSample(tags_basic.TagMatchConfig)
             ]
         })
     substitutions: List[RegexReplaceRule] = dataclasses.field(
         metadata={
             'help_text': 'List of regex-based replacements.',
-            'help_sampes': [help_docs.RawSample(REGEX_CONFIG_EXAMPLE)]
         })
 
     def transform_text(self, text: str) -> str:

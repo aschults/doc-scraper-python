@@ -1,0 +1,143 @@
+#
+# Configure a pipeline
+#
+# Load from various sources (some are aware of command line arg)
+sources:
+    # Load from local files (as HTML).
+    - kind: doc_files
+      config:
+      
+    # Load from Google Drive API as exported HTML.
+    - kind: google_doc_html
+      # Configuration of Google Docs to download.
+      config:
+        # Document IDs (part of the URL) to download.
+        doc_ids:
+        -   "1HZUlXXXXXX_SAMPLE1_XXXXXXIAQOa-xx9XxXx-xXxx"
+        -   "1HZUlXXXXXX_SAMPLE2_XXXXXXIAQOa-xx9XxXx-xXxx"
+        # Google account username (as email), incl. service accounts.
+        username: "someone@gmail.com"
+      
+    
+
+# Steps executed in order to modify the documents
+transformations:
+    # Merge paragraph items by matching tags.
+    - kind: merge_by_tag
+      # Configuration for merging paragraph elements by tag.
+      config:
+        merge_as_text_run: False  # Default
+        match_element:
+            element_types:  # Any paragraph element, e.g. TextRun
+            -   "ParagraphElement"
+                # element_types:  # Specifically only Chips and BulletItems
+                # -   "Chips"
+                # -   "BulletItem"
+            # List of list of tags, all required for the match to happen.
+            required_tag_sets:
+            -   A: .*
+                B:
+            -   C: .*
+            # Tags that stop any match if present.
+            rejected_tags:  # No Elements tagged with X will be matched.
+            -   "X"
+            # Styles required for the tag to match. All need to match.
+            required_style_sets:
+            -   font-size: "20pt"
+                font-weight: "bold"
+            -   color: "red"
+            # Styles that prevent matching. Only one needs to match.
+            rejected_styles:
+                font-weight: "400"
+            # If set to True, quotes in style values are removed.
+            skip_style_quotes: True  # Default
+            # The Python regex to match with element's text representation.
+            aggregated_text_regex:  # Default
+            # List of expressions to interpolate and match.
+            element_expressions:
+            -   expr: "{e.text}--{e.url}"  # Element text, followed by url from element(e)
+                    # expr: "{e.tags[tag1]}"  # Grab value of tag "tag1"
+                regex_match: ...
+                ignore_key_errors: False  # Default
+      
+    # Rearrange bullet items so they are properly nested (in attribute named "neseted"
+    - kind: nest_bullets
+      
+    # Rearrange the doc to match the hierarchy of headings.
+    - kind: nest_sections
+      
+    - kind: regex_replace
+      # Configuration for modifying text by regular expression.
+      config:
+        # Constraints required for the substitution to happen.
+        match:
+            element_types:  # Any paragraph element, e.g. TextRun
+            -   "ParagraphElement"
+                # element_types:  # Specifically only Chips and BulletItems
+                # -   "Chips"
+                # -   "BulletItem"
+            # List of list of tags, all required for the match to happen.
+            required_tag_sets:
+            -   A: .*
+                B:
+            -   C: .*
+            # Tags that stop any match if present.
+            rejected_tags:  # No Elements tagged with X will be matched.
+            -   "X"
+            # Styles required for the tag to match. All need to match.
+            required_style_sets:
+            -   font-size: "20pt"
+                font-weight: "bold"
+            -   color: "red"
+            # Styles that prevent matching. Only one needs to match.
+            rejected_styles:
+                font-weight: "400"
+            # If set to True, quotes in style values are removed.
+            skip_style_quotes: True  # Default
+            # The Python regex to match with element's text representation.
+            aggregated_text_regex:  # Default
+            # List of expressions to interpolate and match.
+            element_expressions:
+            -   expr: "{e.text}--{e.url}"  # Element text, followed by url from element(e)
+                    # expr: "{e.tags[tag1]}"  # Grab value of tag "tag1"
+                regex_match: ...
+                ignore_key_errors: False  # Default
+        # List of regex-based replacements.
+        substitutions: ...
+      
+    # Remove unwanted keys from attrs, style and ShardData.style_rules
+    - kind: strip_elements
+      config:
+      
+    # Add tags to any element if they match the criteria.
+    - kind: tag_by_match
+      # Configuration for matching and tagging elements.
+      config:
+        # Criteria to match elements for tagging.
+        match_element: ...
+        # Updates for tags
+        tags: ...
+      
+    
+
+# Places to write down the result
+sinks:
+    # Write to a single file, with separators between.
+    - kind: single_file
+      config:
+      
+    # Write to stdout, with separators between.
+    - kind: stdout
+      
+    # Write to individual files, with templated filenames
+    - kind: template_path
+      # Configuration for temlate-based file outpout.
+      config:
+        # Template for the filename. Text in braces ({var}) is expanded.
+        # 
+        # All attributes in Document.attrs are supported,
+        # and "i" (as file counter)
+        output_path_template: "file{i}.json"  # Suffix every file with a number
+            # output_path_template: "filename_{blah}.json"  # Use attribute "blah" from attrs.
+      
+    

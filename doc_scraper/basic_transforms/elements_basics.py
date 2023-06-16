@@ -4,7 +4,6 @@ import dataclasses
 import re
 
 from doc_scraper import doc_struct
-from doc_scraper import help_docs
 from doc_scraper import doc_transform
 
 _V = TypeVar('_V')
@@ -20,7 +19,7 @@ class StripElementsConfig():
             'help_text':
                 'List for regexes. Matching keys in `attribs` are removed.',
             'help_samples': [('Remove all starting with _ or X_',
-                              help_docs.RawSample('["_.*", "X_.*]'))]
+                              ['_.*', 'X_.*'])]
         })
     remove_styles_re: Optional[Sequence[str]] = dataclasses.field(
         default=None,
@@ -28,7 +27,7 @@ class StripElementsConfig():
             'help_text':
                 'List for regexes. Matching keys in `styles` are removed.',
             'help_samples': [('Remove all styles with "font" in the key',
-                              help_docs.RawSample('[".*font.*"]'))]
+                              ['.*font.*'])]
         })
     remove_style_rules_re: Optional[Sequence[str]] = dataclasses.field(
         default=None,
@@ -37,7 +36,7 @@ class StripElementsConfig():
                 'List for regexes. Matching keys in `style_rules ' +
                 'are removed from SharedData.',
             'help_samples': [('Remove all starting ".lst" or "ul."',
-                              help_docs.RawSample(r'["\.lst.*", "ul\..*]'))]
+                              [r'\.lst.*', r'ul\..*'])]
         })
 
 

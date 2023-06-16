@@ -138,29 +138,6 @@ class ElementFilterConverter(
 # Type used to match tags.
 TagMatcherType = Mapping[str, re.Pattern[str]]
 
-# Example config for TagMatchingConifg, to be used for help_docs.
-TAG_MATCH_CONFIG_EXAMPLE = """
-  element_types:
-  - TextRun
-  - BulletItem
-  required_tags_sets:
-  - {"A": ".*", "C":"123"}
-  - {"D": ".*"}
-  rejected_tags: {'R': '.*'}
-  required_style_sets:
-  - backgorund-color: "#ff0000"   # Match if background is red...
-    color: white                  # AND the text is white (both must match)
-  - font-weight: bold             # OR if text is bold text
-  rejected_styles:
-  - color: .*green.*              # Don't match if the text is any green.
-  - color: blue                   # Also don't match if the text is blue.
-"""
-
-REQUIRED_STYLE_SET_EXAMPLE = """
-  - {font-size: 20pt, font-weight: bold}
-  - color: red
-"""
-
 # All types that contain a text attribute.
 TEXT_ELEMENT_TYPES = (
     doc_struct.Chip,
@@ -231,10 +208,9 @@ class TagMatchConfig():
             'help_docs':
                 'The element types to be tagged',
             'help_samples': [
-                ('Any paragraph element, e.g. TextRun',
-                 help_docs.RawSample('\n- ParagraphElement')),
+                ('Any paragraph element, e.g. TextRun', ['ParagraphElement']),
                 ('Specifically only Chips and BulletItems',
-                 help_docs.RawSample('["Chips", "BulletItem"]')),
+                 ['Chips', 'BulletItem']),
             ]
         })
 
@@ -244,11 +220,12 @@ class TagMatchConfig():
             'help_text':
                 'List of list of tags, all required for the ' +
                 'match to happen.',
-            'help_samples': [
-                help_docs.RawSample(
-                    '\n- ["A":".*","B":""]  # matches if A and B present.\n' +
-                    '- ["C":".*"]  # Or C alone.')
-            ],
+            'help_samples': [[{
+                'A': re.compile('.*'),
+                'B': re.compile(''),
+            }, {
+                'C': re.compile('.*')
+            }]],
         })
     rejected_tags: TagMatcherType = dataclasses.field(
         default_factory=dict,
@@ -256,7 +233,7 @@ class TagMatchConfig():
             'help_text':
                 'Tags that stop any match if present.',
             'help_samples': [('No Elements tagged with X will be matched.',
-                              help_docs.RawSample('["X"]'))]
+                              ['X'])]
         })
 
     required_style_sets: Sequence[Mapping[
@@ -265,9 +242,15 @@ class TagMatchConfig():
             metadata={
                 'help_text':
                     'Styles required for the tag to match. All need to match.',
-                'help_samples': [
-                    help_docs.RawSample(REQUIRED_STYLE_SET_EXAMPLE)
-                ]
+                'help_samples': [[
+                    {
+                        'font-size': '20pt',
+                        'font-weight': 'bold'
+                    },
+                    {
+                        'color': 'red'
+                    },
+                ]]
             })
 
     rejected_styles: Mapping[str, re.Pattern[str]] = dataclasses.field(
@@ -275,7 +258,9 @@ class TagMatchConfig():
         metadata={
             'help_text':
                 'Styles that prevent matching. Only one needs to match.',
-            'help_samples': [help_docs.RawSample('\n  font-weight: 400')]
+            'help_samples': [{
+                'font-weight': '400'
+            }]
         })
 
     skip_style_quotes: bool = dataclasses.field(
@@ -297,7 +282,11 @@ class TagMatchConfig():
         ElementExpressionMatchConfig] = dataclasses.field(
             default_factory=list,
             metadata={
-                'help_text': 'List of expressions to interpolate and match.',
+                'help_text':
+                    'List of expressions to interpolate and match.',
+                'help_samples': [[
+                    help_docs.ClassBasedSample(ElementExpressionMatchConfig)
+                ]]
             })
 
     def _is_text_matching(self, element: doc_struct.Element) -> bool:
@@ -317,20 +306,20 @@ class TagMatchConfig():
     def _match_all(self, tags: Mapping[str, str],
                    match: TagMatcherType) -> bool:
         """Return true if all of the tags match."""
-        for k, v in match.items():
-            if k not in tags:
+        for key, value in match.items():
+            if key not in tags:
                 return False
-            if not v.match(tags[k]):
+            if not value.match(tags[key]):
                 return False
         return True
 
     def _match_any(self, tags: Mapping[str, str],
                    match: TagMatcherType) -> bool:
         """Return true if any of the tags match."""
-        for k, v in match.items():
-            if k not in tags:
+        for key, value in match.items():
+            if key not in tags:
                 continue
-            if v.match(tags[k]):
+            if value.match(tags[key]):
                 return True
         return False
 
@@ -404,15 +393,16 @@ DOC_HELP_TAG_UPDATE_CONFIG_SAMPLE = """
 class TagUpdateConfig():
     """Configuration for updating tags."""
 
-    add: Mapping[str, str] = dataclasses.field(
-        default_factory=dict,
-        metadata={
-            'help_text':
-                'A list of tags to add.',
-            'help_sampes': [
-                help_docs.RawSample('{"tag1": "val1", "tag2": "val2"}')
-            ]
-        })
+    add: Mapping[str,
+                 str] = dataclasses.field(default_factory=dict,
+                                          metadata={
+                                              'help_text':
+                                                  'A list of tags to add.',
+                                              'help_sampes': [{
+                                                  'tag1': 'val1',
+                                                  'tag2': 'val2'
+                                              }]
+                                          })
 
     remove: Sequence[str] = dataclasses.field(
         default_factory=list,
@@ -420,8 +410,8 @@ class TagUpdateConfig():
             'help_text':
                 'A list of tags to remove. Use "*" to clear all.',
             'help_sampes': [
-                help_docs.RawSample('["tag3", "tag4"]'),
-                ('Clear tags before adding', help_docs.RawSample('["*"]'))
+                ('Add two tags', ['tag3', 'tag4']),
+                ('Clear tags before adding', ['*']),
             ]
         })
 
@@ -442,21 +432,13 @@ class TagUpdateConfig():
 class TaggingConfig():
     """Configuration for matching and tagging elements."""
 
-    match_element: TagMatchConfig = dataclasses.field(
-        metadata={
-            'help_text':
-                'Criteria to match elements for tagging.',
-            'help_samples': [('',
-                              help_docs.RawSample(TAG_MATCH_CONFIG_EXAMPLE))]
-        })
+    match_element: TagMatchConfig = dataclasses.field(metadata={
+        'help_text': 'Criteria to match elements for tagging.',
+    })
 
-    tags: TagUpdateConfig = dataclasses.field(
-        metadata={
-            'help_text':
-                'Updates for tags',
-            'help_samples':
-                [help_docs.RawSample(DOC_HELP_TAG_UPDATE_CONFIG_SAMPLE)]
-        })
+    tags: TagUpdateConfig = dataclasses.field(metadata={
+        'help_text': 'Updates for tags',
+    })
 
 
 class TaggingTransform(doc_transform.Transformation):

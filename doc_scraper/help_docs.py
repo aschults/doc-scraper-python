@@ -16,6 +16,7 @@ from typing import (
     List,
     cast,
 )
+import re
 
 # Convenience type to allow adding samples via tuple.
 ConfigFieldSampleType = Union[Tuple[str, Any], Any]
@@ -36,6 +37,18 @@ class RawSample():
         self.raw = raw
 
 
+class ClassBasedSample():
+    """Class to mark help docs to be generated from a class."""
+
+    def __init__(self, config_type: type[object]) -> None:
+        """Construct an instance.
+
+        Args:
+            config_type: Type of the dataclass config class.
+        """
+        self.config_type = config_type
+
+
 class TextConvertible():
     """Base class for all help data that converts to text."""
 
@@ -50,15 +63,57 @@ class TextConvertible():
         """Convert the object into a Yaml config with comments."""
         raise NotImplementedError('Implement in subclasses.')
 
+    def _is_single_line(self, value: Any):
+        """Decide if the value should be presented on a single line."""
+        if isinstance(value, str):
+            return True
+        if isinstance(value, (dict, list, set, ClassBasedSample)):
+            return False
+        return True
+
+    def _dict_value_as_yaml(self, key: str, value: Any, text: str = '') -> str:
+        """Render a dict key-value, considering single/multi line format."""
+        value_str = self._values_as_yaml(value)
+        if text:
+            text = '  # ' + text
+        if self._is_single_line(value):
+            space_sep = ' ' if value_str else ''
+            return f'{key}:{space_sep}{value_str}{text}'
+        else:
+            return f'{key}:{text}\n{value_str}'
+
     def _values_as_yaml(self, value: Any) -> str:
         """Convert a value into a YAML-format string.
 
         Inserts the raw content of RawSample instances.
         """
+        if value is None:
+            return ''
         if isinstance(value, str):
+            if not value:
+                return ''
             return f'"{value}"'
+        if isinstance(value, dict):
+            result = (self._dict_value_as_yaml(key, value2)
+                      for key, value2 in cast(dict[str, Any], value.items()))
+            result = (self._prefix_text_lines(value2) for value2 in result)
+            return '\n'.join(result)
+        if isinstance(value, list):
+            result = (self._values_as_yaml(value2)
+                      for value2 in cast(list[Any], value))
+            result = (value2 if value2[0] == ' ' else '    ' + value2
+                      for value2 in result)
+            result = ('-' + value2[1:] for value2 in result)
+            result_str = '\n'.join(result)
+            return result_str
+        if isinstance(value, re.Pattern):
+            return cast(re.Pattern[str], value).pattern
         if isinstance(value, RawSample):
             return value.raw
+        if isinstance(value, ClassBasedSample):
+            docs = ConfigHelp.from_config_class(value.config_type).as_yaml()
+            docs = self._prefix_text_lines(docs)
+            return docs
         return str(value)
 
 
@@ -80,6 +135,20 @@ class ConfigFieldHelp(TextConvertible):
     sample_values: Sequence[Tuple[str, Any]]
 
     @classmethod
+    def _gen_default_sample(cls,
+                            field: dataclasses.Field[Any]) -> Tuple[str, Any]:
+        """Generate the default sample based on default values in fields."""
+        if not isinstance(field.default, type(dataclasses.MISSING)):
+            value = field.default
+        elif not isinstance(field.default_factory, type(dataclasses.MISSING)):
+            value = cast(Any, field.default_factory)()
+        else:
+            return ('', RawSample('...'))
+        if dataclasses.is_dataclass(value):
+            value = ClassBasedSample(type(value))
+        return ('Default', value)
+
+    @classmethod
     def from_dataclasses_field(
             cls, field: dataclasses.Field[Any]) -> 'ConfigFieldHelp':
         """Create an instance from a dataclass.Field object.
@@ -88,7 +157,8 @@ class ConfigFieldHelp(TextConvertible):
         'help_samples'.
         """
         samples: List[Tuple[str, Any]] = []
-        for sample in field.metadata.get('help_samples', []):
+        for sample in field.metadata.get('help_samples',
+                                         [cls._gen_default_sample(field)]):
             if isinstance(sample, Tuple):
                 samples.append(cast(Tuple[str, Any], sample))
             else:
@@ -96,15 +166,6 @@ class ConfigFieldHelp(TextConvertible):
 
         return ConfigFieldHelp(field.name, field.type,
                                field.metadata.get('help_text', ''), samples)
-
-    def _render_sample_value(self, text: str, value: Any) -> str:
-        """Convert a sample value with help text to YAML."""
-        text_str = ''
-        if text:
-            text_str = '  # ' + text
-
-        value_str = self._values_as_yaml(value)
-        return f'{value_str}{text_str}'
 
     def as_yaml(self) -> str:
         """Convert the instance to YAML."""
@@ -116,20 +177,21 @@ class ConfigFieldHelp(TextConvertible):
         first_sample_str: str = ''
         if self.sample_values:
             first_text, first_value = self.sample_values[0]
-            first_sample_str = ' ' + self._render_sample_value(
-                first_text, first_value)
+            first_sample_str = self._dict_value_as_yaml(
+                self.name, first_value, first_text)
 
         other_samples: List[str] = []
 
         for sample in self.sample_values[1:]:
-            sample_str = self._render_sample_value(*sample)
-            other_samples.append(f'    # {self.name}: {sample_str}')
+            sample_str = self._dict_value_as_yaml(self.name, sample[1],
+                                                  sample[0])
+            sample_str = self._prefix_text_lines(sample_str, prefix='    # ')
+            other_samples.append(sample_str)
 
         other_samples_str: str = ''
         if other_samples:
             other_samples_str = '\n' + '\n'.join(other_samples)
-        return (f'{comment_str}{self.name}:' +
-                f'{first_sample_str}{other_samples_str}')
+        return f'{comment_str}{first_sample_str}{other_samples_str}'
 
 
 @dataclasses.dataclass

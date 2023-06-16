@@ -303,6 +303,7 @@ class TextMatchTest(unittest.TestCase):
             doc_struct.TextRun(text='blah'),
         ),
     ])
+    # pylint: disable=unused-argument
     def test_positive_match(self, summary: str,
                             config: tags_basic.TagMatchConfig,
                             data: doc_struct.Element):
@@ -329,6 +330,7 @@ class TextMatchTest(unittest.TestCase):
             doc_struct.TextRun(text='blah'),
         ),
     ])
+    # pylint: disable=unused-argument
     def test_negative_match(self, summary: str,
                             config: tags_basic.TagMatchConfig,
                             data: doc_struct.Element):

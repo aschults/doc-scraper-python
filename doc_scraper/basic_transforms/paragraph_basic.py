@@ -173,7 +173,7 @@ class TagMergeConfig():
             'help_docs':
                 'Criteria to allow merge of subsequent tags.',
             'help_samples': [
-                help_docs.RawSample(tags_basic.TAG_MATCH_CONFIG_EXAMPLE),
+                help_docs.ClassBasedSample(tags_basic.TagMatchConfig),
             ]
         })
 
