@@ -1,0 +1,1 @@
+pytest-3 --cov=doc_scraper/ --cov-report=lcov tests

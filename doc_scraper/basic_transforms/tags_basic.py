@@ -12,6 +12,7 @@ from typing import (
     Callable,
     Mapping,
     TypeVar,
+    Protocol,
 )
 import dataclasses
 import re
@@ -180,7 +181,11 @@ class ElementExpressionMatchConfig():
                 'non-matching',
         })
 
-    def is_matching(self, element: doc_struct.Element) -> bool:
+    # pylint: disable=unused-argument
+    def is_matching(
+            self,
+            element: doc_struct.Element,
+            path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
         """Check if an element matches."""
         try:
             expanded = self.expr.format(e=element)
@@ -348,7 +353,11 @@ class TagMatchConfig():
 
         return False
 
-    def is_matching(self, element: doc_struct.Element) -> bool:
+    # pylint: disable=unused-argument
+    def is_matching(
+            self,
+            element: doc_struct.Element,
+            path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
         """Check if an element matches."""
         if not isinstance(element, tuple(self.element_types)):
             return False
@@ -366,17 +375,6 @@ class TagMatchConfig():
             return False
 
         return True
-
-    def match_descendents(
-            self,
-            *elements: doc_struct.Element) -> Sequence[doc_struct.Element]:
-        """Search through the element and descendents and match this config."""
-        filter_converter = ElementFilterConverter(self.is_matching)
-        result: List[doc_struct.Element] = []
-        for element in elements:
-            result.extend(filter_converter.convert(element))
-
-        return result
 
 
 # Type parameter to match any element type in update_tags.
@@ -432,13 +430,45 @@ class TagUpdateConfig():
 class TaggingConfig():
     """Configuration for matching and tagging elements."""
 
-    match_element: TagMatchConfig = dataclasses.field(metadata={
-        'help_text': 'Criteria to match elements for tagging.',
-    })
+    match_element: TagMatchConfig = dataclasses.field(
+        default_factory=TagMatchConfig,
+        metadata={
+            'help_text': 'Criteria to match elements for tagging.',
+        })
 
     tags: TagUpdateConfig = dataclasses.field(metadata={
         'help_text': 'Updates for tags',
     })
+
+    def is_matching(
+            self,
+            element: doc_struct.Element,
+            path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
+        """Check if an element matches.
+
+        Delegate to the config classes for the check.
+        """
+        return self.match_element.is_matching(element, path)
+
+    def update_tags(self, element: doc_struct.Element) -> doc_struct.Element:
+        """Update the passed element with the speficied tags.
+
+        Delegate to the config classes.
+        """
+        return self.tags.update_tags(element)
+
+
+class TaggingTransformConfigProtocol(Protocol):
+    """Interface required to work with TaggingTransform."""
+
+    def is_matching(
+            self,
+            element: doc_struct.Element,
+            path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
+        """Check if an element matches."""
+
+    def update_tags(self, element: doc_struct.Element) -> doc_struct.Element:
+        """Update the passed element with the speficied tags."""
 
 
 class TaggingTransform(doc_transform.Transformation):
@@ -446,7 +476,7 @@ class TaggingTransform(doc_transform.Transformation):
 
     def __init__(
             self,
-            config: TaggingConfig,
+            config: TaggingTransformConfigProtocol,
             context: Optional[doc_transform.TransformationContext] = None):
         """Construct an instance.
 
@@ -460,8 +490,8 @@ class TaggingTransform(doc_transform.Transformation):
     def _transform_element_base(
             self, element: doc_struct.Element) -> doc_struct.Element:
         """Transform (tag) all elements."""
-        if self.config.match_element.is_matching(element):
-            element = self.config.tags.update_tags(element)
+        if self.config.is_matching(element, self.context.path_objects):
+            element = self.config.update_tags(element)
 
         return super()._transform_element_base(element)
 

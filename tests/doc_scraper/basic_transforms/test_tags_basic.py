@@ -107,20 +107,6 @@ class TestTagMatching(unittest.TestCase):
                 doc_struct.ParagraphElement,
             ]).is_matching(sample_run))
 
-    def test_match_descendents(self):
-        """Test the match_descendents function."""
-        data = doc_struct.Section(
-            heading=None,
-            content=[
-                doc_struct.BulletItem(list_type='ul',
-                                      elements=[doc_struct.Chip(text='here')]),
-            ])
-        result = tags_basic.TagMatchConfig(element_types=[
-            doc_struct.Chip,
-        ]).match_descendents(data)
-
-        self.assertEqual([doc_struct.Chip(text='here')], result)
-
 
 class TestFilterConversion(unittest.TestCase):
     """Test the filtering conversion class."""

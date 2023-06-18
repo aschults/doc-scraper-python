@@ -16,9 +16,7 @@
         "-a"
     ],
     "python.testing.pytestArgs": [
-        "tests",
-        "--cov=doc_scraper/",
-        "--cov-report=lcov"
+        "tests"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
@@ -37,8 +35,6 @@
         ".",
         "-p",
         "*test*.py",
-        "--cov=doc_scraper/",
-        "--cov-report=xml",
         "--pdb"
     ],
     "markiscodecoverage.searchCriteria": "coverage.lcov",
@@ -51,4 +47,5 @@
     "python.linting.pydocstyleArgs": [
         "--convention=google"
     ],
+    "python.analysis.inlayHints.pytestParameters": true,
 }
