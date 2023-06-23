@@ -3,6 +3,7 @@
 from typing import Set
 import unittest
 import dataclasses
+from typing import TypeVar, Optional
 
 from parameterized import parameterized  # type:ignore
 
@@ -97,6 +98,14 @@ TABLE = doc_struct.Table(
         ],
     ],
 )
+
+_T = TypeVar('_T', bound=object)
+
+
+def _deref(obj: Optional[_T]) -> _T:
+    if obj is None:
+        raise AssertionError('should not be none')
+    return obj
 
 
 def _tag_type_descendent(
@@ -350,3 +359,117 @@ class TestRelationMatching(unittest.TestCase):
                           lambda element: 'x' in element.tags).convert(result))
 
         self.assertEqual(expected, changed)
+
+
+class TestIsInRange(unittest.TestCase):
+    """Teset the is_in_range function."""
+
+    def test_bounded_matches(self):
+        """Test element in relation with bounded range."""
+        self.assertTrue(tags_relation.is_in_range(1, 0, 2, 4))
+        self.assertTrue(tags_relation.is_in_range(1, 0, 2, 1))
+        self.assertTrue(tags_relation.is_in_range(1, 1, 2, 2))
+
+    def test_unbounded_matches(self):
+        """Test element in relation with UNbounded range."""
+        self.assertTrue(tags_relation.is_in_range(1, None, 2, 4))
+        self.assertTrue(tags_relation.is_in_range(1, 0, None, 4))
+        self.assertTrue(tags_relation.is_in_range(1, None, None, 4))
+
+    def test_bounded_nonmatch(self):
+        """Test element NOT in relation with bounded range."""
+        self.assertFalse(tags_relation.is_in_range(2, 0, 2, 4))
+        self.assertFalse(tags_relation.is_in_range(3, 0, 2, 4))
+        self.assertFalse(tags_relation.is_in_range(1, 2, 3, 4))
+
+    def test_unbounded_nonmatch(self):
+        """Test element NOT in relation with UNbounded range."""
+        self.assertFalse(tags_relation.is_in_range(2, None, 2, 4))
+        self.assertFalse(tags_relation.is_in_range(3, None, 2, 4))
+        self.assertFalse(tags_relation.is_in_range(1, 2, None, 4))
+
+    def test_negative(self):
+        """Test negative range indices."""
+        self.assertTrue(tags_relation.is_in_range(2, 0, -1, 4))
+        self.assertFalse(tags_relation.is_in_range(2, 0, -2, 4))
+        self.assertTrue(tags_relation.is_in_range(2, -2, 4, 4))
+        self.assertFalse(tags_relation.is_in_range(1, -1, 2, 4))
+
+    def test_special(self):
+        """Test special cases."""
+        self.assertFalse(tags_relation.is_in_range(1, 0, 2, 0))  # zero length
+        self.assertFalse(tags_relation.is_in_range(2, 2, 2, 4))  # empty range
+        self.assertFalse(tags_relation.is_in_range(None, 0, 4,
+                                                   4))  # None as coordinate
+        self.assertRaisesRegex(
+            ValueError, '.*positive.*',
+            lambda: tags_relation.is_in_range(2, 0, 2, -1))  # negative length
+
+
+class TestCoordinateGrid(unittest.TestCase):
+    """Test the coordinate grid classes."""
+
+    def test_flat_paragraph(self):
+        """Test coordinate grid over flat paragraphs."""
+        grid = tags_relation.coord_grid_from_parent(PARAGRAPH_FLAT)
+        self.assertEqual('3b', _deref(grid.get(1)).tags['id'])
+        self.assertEqual(3, grid.find(PARAGRAPH_FLAT.elements[3]))
+        self.assertIsNone(grid.find(doc_struct.Element()))
+
+    def test_empty_flat_paragraph(self):
+        """Test coordinate grid over empty paragraphs."""
+        grid = tags_relation.coord_grid_from_parent(
+            doc_struct.Paragraph(elements=[]))
+        self.assertIsNone(grid.get(None))
+        self.assertIsNone(grid.get((2, 3)))
+        self.assertIsNone(grid.find(PARAGRAPH_FLAT.elements[3]))
+
+    def test_flat_paragraph_special(self):
+        """Test special cases for coordinate grid for flat paragraphs."""
+        grid = tags_relation.coord_grid_from_parent(PARAGRAPH_FLAT)
+        self.assertIsNone(grid.get(None))
+        self.assertIsNone(grid.get((2, 3)))
+        self.assertIsNone(grid.find(doc_struct.Chip(text='no match')))
+
+    def test_doc_content(self):
+        """Test coordinate grid over doc content (vertical)."""
+        grid = tags_relation.coord_grid_from_parent(
+            doc_struct.DocContent(elements=[PARAGRAPH_FLAT]))
+        self.assertEqual('2', _deref(grid.get(0)).tags['id'])
+        self.assertEqual(0, grid.find(PARAGRAPH_FLAT))
+        self.assertIsNone(grid.find(doc_struct.Element()))
+
+    def test_2d_paragraph(self):
+        """Test coordinate grid of 2d paragraphs."""
+        grid = tags_relation.coord_grid_from_parent(PARAGRAPH_TEXT_LINE)
+        self.assertEqual('3c', _deref(grid.get((1, 0))).tags['id'])
+        row = PARAGRAPH_TEXT_LINE.elements[0]
+        if not isinstance(row, doc_struct.TextLine):
+            self.fail(f'Bad type {row}')
+
+        self.assertEqual((0, 1), grid.find(row.elements[1]))
+        self.assertIsNone(grid.find(doc_struct.Element()))
+
+    def test_table(self):
+        """Test coordinate grid of tables (2d)."""
+        content = doc_struct.DocContent(elements=[], tags={'id': '1'})
+        grid = tags_relation.coord_grid_from_parent(
+            doc_struct.Table(elements=[[content]]))
+        self.assertEqual('1', _deref(grid.get((0, 0))).tags['id'])
+        self.assertEqual((0, 0), grid.find(content))
+        self.assertIsNone(grid.find(doc_struct.DocContent(elements=[])))
+
+    def test_table_special(self):
+        """Test special cases for coordinate grid for table."""
+        content = doc_struct.DocContent(elements=[], tags={'id': '1'})
+        grid = tags_relation.coord_grid_from_parent(
+            doc_struct.Table(elements=[[content]]))
+        self.assertIsNone(grid.get(None))
+
+    def test_empty_table(self):
+        """Test coordinate grid for empty table."""
+        grid = tags_relation.coord_grid_from_parent(
+            doc_struct.Table(elements=[]))
+        self.assertIsNone(grid.get(None))
+        self.assertIsNone(grid.get(2))
+        self.assertIsNone(grid.find(PARAGRAPH_FLAT.elements[3]))
