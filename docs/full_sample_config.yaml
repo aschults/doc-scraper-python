@@ -55,8 +55,8 @@ transformations:
             aggregated_text_regex:  # Default
             # List of expressions to interpolate and match.
             element_expressions:
-            -   expr: "{e.text}--{e.url}"  # Element text, followed by url from element(e)
-                    # expr: "{e.tags[tag1]}"  # Grab value of tag "tag1"
+            -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
+                    # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
                 regex_match: ...
                 ignore_key_errors: False  # Default
       
@@ -98,8 +98,8 @@ transformations:
             aggregated_text_regex:  # Default
             # List of expressions to interpolate and match.
             element_expressions:
-            -   expr: "{e.text}--{e.url}"  # Element text, followed by url from element(e)
-                    # expr: "{e.tags[tag1]}"  # Grab value of tag "tag1"
+            -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
+                    # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
                 regex_match: ...
                 ignore_key_errors: False  # Default
         # List of regex-based replacements.
@@ -142,8 +142,8 @@ transformations:
             aggregated_text_regex:  # Default
             # List of expressions to interpolate and match.
             element_expressions:
-            -   expr: "{e.text}--{e.url}"  # Element text, followed by url from element(e)
-                    # expr: "{e.tags[tag1]}"  # Grab value of tag "tag1"
+            -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
+                    # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
                 regex_match: ...
                 ignore_key_errors: False  # Default
             # Horitzontal start of matched elements. Unbound if not set.

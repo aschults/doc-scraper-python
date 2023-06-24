@@ -163,9 +163,9 @@ class ElementExpressionMatchConfig():
             'help_docs':
                 'The expression (format interpolated) to match',
             'help_samples': [
-                ('Element text, followed by url from element(e)',
-                 '{e.text}--{e.url}'),
-                ('Grab value of tag "tag1"', '{e.tags[tag1]}'),
+                ('Element text, followed by url from element(0)',
+                 '{0.text}--{0.url}'),
+                ('Grab value of tag "tag1"', '{0.tags[tag1]}'),
             ]
         })
 
@@ -187,8 +187,13 @@ class ElementExpressionMatchConfig():
             element: doc_struct.Element,
             path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
         """Check if an element matches."""
+        if not path:
+            path = []
+        else:
+            path = path[:-1]
+            reversed(path)
         try:
-            expanded = self.expr.format(e=element)
+            expanded = self.expr.format(element, ancestors=path)
         except KeyError as exc:
             if self.ignore_key_errors:
                 return False
@@ -294,11 +299,14 @@ class TagMatchConfig():
                 ]]
             })
 
-    def _is_text_matching(self, element: doc_struct.Element) -> bool:
+    def _is_text_matching(
+            self,
+            element: doc_struct.Element,
+            path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
         """Check if an element matches."""
         if self.element_expressions:
             for item in self.element_expressions:
-                if not item.is_matching(element):
+                if not item.is_matching(element, path):
                     return False
 
         if self.aggregated_text_regex:
@@ -371,7 +379,7 @@ class TagMatchConfig():
                 style, self.required_style_sets, self.rejected_styles):
             return False
 
-        if not self._is_text_matching(element):
+        if not self._is_text_matching(element, path):
             return False
 
         return True
@@ -413,8 +421,31 @@ class TagUpdateConfig():
             ]
         })
 
-    def update_tags(self, element: _T) -> _T:
+    ignore_key_errors: bool = dataclasses.field(
+        default=False,
+        metadata={
+            'help_docs':
+                'If set to true, KeyErrors are ignored and a value to' +
+                'show the error is used instead.',
+        })
+
+    # pylint: disable=unused-argument
+    def _interpolate_tag(self, key: str, template: str, *args: Any,
+                         **kwargs: Any) -> str:
+        """Interpolate a tag value with element and other data."""
+        try:
+            return template.format(*args, **kwargs)
+        except KeyError as exc:
+            if self.ignore_key_errors:
+                return f'<<KeyError: {exc}>>'
+            raise exc
+
+    def update_tags(self, element: _T, **substitutes: Any) -> _T:
         """Update the passed element with the speficied tags."""
+        interpolated_added = {
+            k: self._interpolate_tag(k, v, element, **substitutes)
+            for k, v in self.add.items()
+        }
         if '*' in self.remove:
             new_tags: Dict[str, str] = {}
         else:
@@ -422,7 +453,7 @@ class TagUpdateConfig():
                 k: v for k, v in element.tags.items() if k not in self.remove
             }
 
-        new_tags.update(self.add)
+        new_tags.update(interpolated_added)
         return dataclasses.replace(element, tags=new_tags)
 
 
@@ -450,12 +481,13 @@ class TaggingConfig():
         """
         return self.match_element.is_matching(element, path)
 
-    def update_tags(self, element: doc_struct.Element) -> doc_struct.Element:
+    def update_tags(self, element: doc_struct.Element,
+                    **variables: Any) -> doc_struct.Element:
         """Update the passed element with the speficied tags.
 
         Delegate to the config classes.
         """
-        return self.tags.update_tags(element)
+        return self.tags.update_tags(element, **variables)
 
 
 class TaggingTransformConfigProtocol(Protocol):
@@ -467,7 +499,8 @@ class TaggingTransformConfigProtocol(Protocol):
             path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
         """Check if an element matches."""
 
-    def update_tags(self, element: doc_struct.Element) -> doc_struct.Element:
+    def update_tags(self, element: doc_struct.Element,
+                    **variables: Any) -> doc_struct.Element:
         """Update the passed element with the speficied tags."""
 
 
@@ -491,7 +524,9 @@ class TaggingTransform(doc_transform.Transformation):
             self, element: doc_struct.Element) -> doc_struct.Element:
         """Transform (tag) all elements."""
         if self.config.is_matching(element, self.context.path_objects):
-            element = self.config.update_tags(element)
+            ancestors = list(self.context.path_objects[:-1])
+            reversed(ancestors)
+            element = self.config.update_tags(element, ancestors=ancestors)
 
         return super()._transform_element_base(element)
 

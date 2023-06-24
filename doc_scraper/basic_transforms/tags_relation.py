@@ -8,6 +8,7 @@ from typing import (
     TypeVar,
     Generic,
     Iterable,
+    Any,
 )
 import dataclasses
 from abc import abstractmethod, ABC
@@ -528,9 +529,10 @@ class RelationalTaggingConfig(tags_basic.TaggingTransformConfigProtocol):
 
         return True
 
-    def update_tags(self, element: doc_struct.Element) -> doc_struct.Element:
+    def update_tags(self, element: doc_struct.Element,
+                    **variables: Any) -> doc_struct.Element:
         """Update the passed element with the speficied tags.
 
         Delegate to the config classes.
         """
-        return self.tags.update_tags(element)
+        return self.tags.update_tags(element, **variables)

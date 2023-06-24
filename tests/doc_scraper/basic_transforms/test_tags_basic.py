@@ -267,6 +267,24 @@ class TagUpdateTest(unittest.TestCase):
         result = config.update_tags(element)
         self.assertEqual(expected, result.tags)
 
+    def test_field_interpolation(self):
+        """Test interpolation during tag updates."""
+        config = tags_basic.TagUpdateConfig(
+            add={
+                'b': 'new_{0.tags[a]}',
+                'c': '{some_field}',
+            },
+            remove=['a'],
+        )
+        element = doc_struct.Element(tags={'a': 'old'})
+        self.assertEqual(
+            {
+                'b': 'new_old',
+                'c': 'field_val'
+            },
+            config.update_tags(element, some_field='field_val').tags,
+        )
+
 
 class TextMatchTest(unittest.TestCase):
     """Test text field matching."""
@@ -284,7 +302,7 @@ class TextMatchTest(unittest.TestCase):
             'field',
             tags_basic.TagMatchConfig(element_expressions=[
                 tags_basic.ElementExpressionMatchConfig(
-                    expr='_{e.text}_', regex_match=re.compile('_blah_'))
+                    expr='_{0.text}_', regex_match=re.compile('_blah_'))
             ]),
             doc_struct.TextRun(text='blah'),
         ),
@@ -295,6 +313,19 @@ class TextMatchTest(unittest.TestCase):
                             data: doc_struct.Element):
         """Test matching cases."""
         self.assertTrue(config.is_matching(data))
+
+    def test_ancestor_match(self):
+        """Check that ancestors are passed to regex matches."""
+        config = tags_basic.TagMatchConfig(element_expressions=[
+            tags_basic.ElementExpressionMatchConfig(
+                expr='_{ancestors[0].tags[id]}_',
+                regex_match=re.compile('_123_'))
+        ])
+        data = doc_struct.Paragraph(tags={'id': '123'},
+                                    elements=[doc_struct.TextRun(text='blah')])
+
+        self.assertTrue(
+            config.is_matching(data.elements[0], [data, data.elements[0]]))
 
     @parameterized.expand([  # type: ignore
         (
@@ -335,3 +366,43 @@ class TextMatchTest(unittest.TestCase):
         self.assertFalse(
             tags_basic.TagMatchConfig(
                 aggregated_text_regex=re.compile('abcXdef')).is_matching(data))
+
+
+class TestTaggingTransform(unittest.TestCase):
+    """Test the TaggingTransform."""
+
+    def test_ancestors_interpolation(self):
+        """Check that ancestors are passed during tag value interpolation."""
+        data = doc_struct.Paragraph(tags={'id': '111'},
+                                    elements=[doc_struct.TextRun(text='text')])
+        config = tags_basic.TaggingConfig(
+            tags=tags_basic.TagUpdateConfig(
+                add={'a': '>{ancestors[0].tags[id]}<'}),
+            match_element=tags_basic.TagMatchConfig(
+                element_types=[doc_struct.TextRun]))
+        transform = tags_basic.TaggingTransform(config)
+
+        result = transform(data)
+
+        expected = doc_struct.Paragraph(
+            tags={'id': '111'},
+            elements=[doc_struct.TextRun(tags={'a': '>111<'}, text='text')])
+        self.assertEqual(expected, result)
+
+    def test_ancestors_interpolation_bad_key(self):
+        """Test the proper handling of KeyErrors during interpolation."""
+        data = doc_struct.TextRun(text='text')
+        config_raise = tags_basic.TaggingConfig(
+            tags=tags_basic.TagUpdateConfig(add={'a': '{bad_key}'}))
+        config_skip = tags_basic.TaggingConfig(tags=tags_basic.TagUpdateConfig(
+            add={'a': '{bad_key}'}, ignore_key_errors=True))
+
+        self.assertRaisesRegex(
+            KeyError,
+            'bad_key',
+            lambda: tags_basic.TaggingTransform(config_raise)(data),
+        )
+        self.assertEqual(
+            '<<KeyError: \'bad_key\'>>',
+            tags_basic.TaggingTransform(config_skip)(data).tags['a'],
+        )
