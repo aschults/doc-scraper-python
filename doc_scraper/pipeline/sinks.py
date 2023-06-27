@@ -310,6 +310,7 @@ def get_default_bulider() -> SinkBuilder:
         'single_file',
         SingleFileOutput.from_config,
         default_factory=SingleFileConfig,
+        config_type=SingleFileConfig,
         help_doc='Write to a single file, with separators between.')
     builder.register(
         'template_path',

@@ -81,15 +81,16 @@ def get_default_builder() -> TransformBuilder:
         help_doc='Rearrange the doc to match the hierarchy of headings.',
     )
     default_builder.register(
-        'tag_by_match',
+        'tag_matching',
         tags_basic.TaggingTransform.from_config,
         help_doc='Add tags to any element if they match the criteria.',
-        config_type=tags_relation.RelationalTaggingConfig
+        config_type=tags_relation.RelativeTaggingConfig
     )
 
     default_builder.register(
         'strip_elements',
         elements_basics.StripElementsTransform.from_config,
+        config_type=elements_basics.StripElementsConfig,
         help_doc='Remove unwanted keys from attrs, style ' +
         'and ShardData.style_rules')
 

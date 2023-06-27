@@ -113,7 +113,7 @@ class StyleTagTest(unittest.TestCase):
             ]))
 
         transform = tags_basic.TaggingTransform(
-            config=tags_basic.TaggingConfig(
+            config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t1')),
                 match_element=tags_basic.TagMatchConfig(required_style_sets=[{
                     'a': re.compile('x')
@@ -174,19 +174,19 @@ class StyleTagTest(unittest.TestCase):
             ]))
 
         transform1 = tags_basic.TaggingTransform(
-            config=tags_basic.TaggingConfig(
+            config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t2')),
                 match_element=tags_basic.TagMatchConfig(required_style_sets=[{
                     'a': re.compile('x')
                 }],)))
         transform2 = tags_basic.TaggingTransform(
-            config=tags_basic.TaggingConfig(
+            config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t3')),
                 match_element=tags_basic.TagMatchConfig(required_style_sets=[{
                     'a': re.compile('y')
                 }],)))
         transform3 = tags_basic.TaggingTransform(
-            config=tags_basic.TaggingConfig(
+            config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t4')),
                 match_element=tags_basic.TagMatchConfig(required_style_sets=[{
                     'b': re.compile('z')
@@ -239,7 +239,7 @@ class StyleTagTest(unittest.TestCase):
             ]))
 
         transform = tags_basic.TaggingTransform(
-            config=tags_basic.TaggingConfig(
+            config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t5')),
                 match_element=tags_basic.TagMatchConfig(
                     required_style_sets=[{
@@ -297,7 +297,7 @@ class StyleTagTest(unittest.TestCase):
             ]))
 
         transform = tags_basic.TaggingTransform(
-            config=tags_basic.TaggingConfig(
+            config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t6')),
                 match_element=tags_basic.TagMatchConfig(
                     required_style_sets=[{
@@ -353,7 +353,7 @@ class StyleTagTest(unittest.TestCase):
             ]))
 
         transform = tags_basic.TaggingTransform(
-            config=tags_basic.TaggingConfig(
+            config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t7')),
                 match_element=tags_basic.TagMatchConfig(required_style_sets=[{
                     'a': re.compile('x'),

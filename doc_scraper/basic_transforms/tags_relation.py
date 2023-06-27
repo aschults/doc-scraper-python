@@ -8,13 +8,16 @@ from typing import (
     TypeVar,
     Generic,
     Iterable,
+    Literal,
     Any,
+    Mapping,
 )
 import dataclasses
 from abc import abstractmethod, ABC
 
 from doc_scraper import doc_struct
 from doc_scraper.basic_transforms import tags_basic
+from doc_scraper import help_docs
 
 # 1d or 2d coordinates used to identify elements.
 CoordinatesType = None | int | Tuple[int, int]
@@ -54,6 +57,15 @@ class CoordinateGrid(Protocol):
             Element or None if the coordinates don't point to an actual
             element (wrong dimensionality, outside bounds)
         """
+
+    def get_relative(
+            self, coords: CoordinatesType, relative: 'RelativePositionConfig'
+    ) -> Optional[doc_struct.Element]:
+        """Get an element based on the relative position to coordinates."""
+
+
+# Positions relative to the current element to address.
+RelativePositionMode = Literal['first', 'prev', 'next', 'last']
 
 
 def is_in_range(
@@ -100,6 +112,41 @@ def is_in_range(
         return False
 
     return coords >= start and coords < end
+
+
+def calc_relative_index(
+        index: int, length: int,
+        relative_pos: Optional[RelativePositionMode]) -> Optional[int]:
+    """Determine the index of a relative position.
+
+    Args:
+        index: Index of the current element.
+        length: Length of the container.
+        relative_pos: Indicator of the relative position to find.
+
+    Returns:
+        Index of the element with relative position indicated in
+        relative_pos.
+    """
+    if relative_pos is None:
+        return index
+
+    if relative_pos == 'first':
+        return 0
+    if relative_pos == 'last':
+        return length - 1
+
+    if relative_pos == 'prev':
+        if index == 0:
+            return None
+        else:
+            return index - 1
+    if relative_pos == 'next':
+        if index + 1 == length:
+            return None
+        return index + 1
+
+    raise ValueError(f'unexpected relative move {relative_pos}')
 
 
 class _1DGridWrapper(CoordinateGrid, Generic[_P], ABC):
@@ -170,6 +217,16 @@ class _1DVerticalGridWrapper(_1DGridWrapper[doc_struct.DocContent |
         return is_in_range(coords, pos_range.start_row, pos_range.end_row,
                            len(self._children))
 
+    def get_relative(
+            self, coords: CoordinatesType, relative: 'RelativePositionConfig'
+    ) -> Optional[doc_struct.Element]:
+        if relative.col is not None:
+            return None
+        if not isinstance(coords, int):
+            return None
+        index = calc_relative_index(coords, len(self._children), relative.row)
+        return self.get(index)
+
 
 class _1DParagraphGridWrapper(_1DGridWrapper[doc_struct.Paragraph |
                                              doc_struct.TextLine]):
@@ -193,6 +250,16 @@ class _1DParagraphGridWrapper(_1DGridWrapper[doc_struct.Paragraph |
         coords = self._find_one_dimension(element)
         return is_in_range(coords, pos_range.start_col, pos_range.end_col,
                            len(self._children))
+
+    def get_relative(
+            self, coords: CoordinatesType, relative: 'RelativePositionConfig'
+    ) -> Optional[doc_struct.Element]:
+        if relative.row is not None:
+            return None
+        if not isinstance(coords, int):
+            return None
+        index = calc_relative_index(coords, len(self._children), relative.col)
+        return self.get(index)
 
 
 # Parent type for generics. Represents all two-dimensional cases.
@@ -257,6 +324,21 @@ class _2DGridWrapper(CoordinateGrid, Generic[_T], ABC):
         table = list(self._get_children())
         row = list(table[coords[0]])
         return row[coords[1]]
+
+    def get_relative(
+            self, coords: CoordinatesType, relative: 'RelativePositionConfig'
+    ) -> Optional[doc_struct.Element]:
+        if not isinstance(coords, tuple):
+            return None
+        children = list(self._get_children())
+        row_index = calc_relative_index(coords[0], len(children), relative.row)
+        row = list(children[coords[0]])
+        col_index = calc_relative_index(coords[1], len(row), relative.col)
+
+        if row_index is None or col_index is None:
+            return None
+
+        return self.get((row_index, col_index))
 
 
 class _2DParagraphGridWrapper(_2DGridWrapper[doc_struct.Paragraph]):
@@ -439,7 +521,7 @@ class PositionMatchConfig(tags_basic.TagMatchConfig):
 
 
 @dataclasses.dataclass(kw_only=True)
-class RelationalTaggingConfig(tags_basic.TaggingTransformConfigProtocol):
+class RelationalMatchingConfig():
     """Describe matching and tagging criteria including inter-element."""
 
     match_element: PositionMatchConfig = dataclasses.field(
@@ -447,10 +529,6 @@ class RelationalTaggingConfig(tags_basic.TaggingTransformConfigProtocol):
         metadata={
             'help_text': 'Criteria to match elements for tagging.',
         })
-
-    tags: tags_basic.TagUpdateConfig = dataclasses.field(metadata={
-        'help_text': 'Updates for tags',
-    })
 
     match_ancestor_list: Sequence[PositionMatchConfig] = dataclasses.field(
         default_factory=list,
@@ -529,10 +607,155 @@ class RelationalTaggingConfig(tags_basic.TaggingTransformConfigProtocol):
 
         return True
 
-    def update_tags(self, element: doc_struct.Element,
-                    **variables: Any) -> doc_struct.Element:
-        """Update the passed element with the speficied tags.
 
-        Delegate to the config classes.
+class Evaluator(Protocol):
+    """Interface to evaluate a variable's value from current element."""
+
+    @abstractmethod
+    def get_value(self, element: doc_struct.Element,
+                  path: Optional[Sequence[doc_struct.Element]]) -> Any:
+        """Get the value by evaluating this instance.
+
+        Args:
+            element: Current element to be used for the evaluation.
+            path: Full ancestor path to be used for the evaluation.
+
+        Returns:
+            Any data type.
         """
-        return self.tags.update_tags(element, **variables)
+
+
+@dataclasses.dataclass(kw_only=True)
+class RelativePositionConfig():
+    """Retreive an element with relative position to the current one."""
+
+    col: Optional[RelativePositionMode] = dataclasses.field(
+        default=None,
+        metadata={
+            'help_text':
+                'Horizontal relative position of the element.',
+            'help_samples': [
+                ('', help_docs.RawSample('first # others: last, prev, next')),
+            ]
+        })
+    row: Optional[RelativePositionMode] = dataclasses.field(
+        default=None,
+        metadata={
+            'help_text':
+                'Vertical relative position of the element.',
+            'help_samples': [
+                ('', help_docs.RawSample('first # others: last, prev, next')),
+            ]
+        })
+
+
+@dataclasses.dataclass(kw_only=True)
+class RelativePositionEvaluator(Evaluator):
+    """Retrieve an element as value, relative to current element."""
+
+    element_at: RelativePositionConfig = dataclasses.field(
+        metadata={
+            'help_text':
+                'Relative position at which to get the element.',
+            'help_samples':
+                [help_docs.ClassBasedSample(RelativePositionConfig)],
+        })
+
+    def get_value(self, element: doc_struct.Element,
+                  path: Optional[Sequence[doc_struct.Element]]) -> Any:
+        """Fetch the element from the specified position."""
+        if not path:
+            raise ValueError('need path and elements in path')
+
+        grid = coord_grid_from_child(path)
+        if grid is None:
+            return None
+
+        coords = grid.find(element)
+        if not coords:
+            return None
+
+        return grid.get_relative(coords, self.element_at)
+
+
+@dataclasses.dataclass(kw_only=True)
+class AncestorPathEvaluator(Evaluator):
+    """Get the current element's ancestors as string.
+
+    Interpolates the level_value for each ancestor and
+    join it in path-like form by separator.
+    """
+
+    level_value: str = dataclasses.field(
+        metadata={
+            'help_text':
+                'Template to use to render each level\'s value.',
+            'help_samples': [('tag "heading" of each level',
+                              '0.tags[heading]'),],
+        })
+
+    separator: str = dataclasses.field(
+        default='/',
+        metadata={'help_text': 'Separator between each level_value'})
+    level_start: Optional[int] = dataclasses.field(
+        default=None,
+        metadata={
+            'help_text':
+                'Level starting from 0 at the root to start the path.',
+            'help_samples': [('start at the 2nd level', 1)],
+        })
+    level_end: Optional[int] = dataclasses.field(
+        default=None,
+        metadata={
+            'help_text': 'Level starting from 0 at the root to end the path.',
+            'help_samples': [('exclude level 3 and below', 2)],
+        })
+
+    def get_value(self, element: doc_struct.Element,
+                  path: Optional[Sequence[doc_struct.Element]]) -> Any:
+        """Calculate the path and return it."""
+        if not path:
+            raise ValueError('need path and elements in path')
+
+        path = path[:-1]
+        path = path[self.level_start:self.level_end]
+
+        return self.separator.join(
+            (self.level_value.format(element) for element in path))
+
+
+# All evaluators as Union so Dacite can pick up on them.
+# Note: Dacite does currently not support creating subclases when
+#       a field is of type base class.
+EvaluatorsType = RelativePositionEvaluator | AncestorPathEvaluator
+
+
+@dataclasses.dataclass(kw_only=True)
+class RelativeTaggingConfig(
+        RelationalMatchingConfig,
+        tags_basic.TaggingConfig,
+        tags_basic.TaggingTransformConfigProtocol,
+):
+    """Match and tag elements, including variables for interpolation."""
+
+    variables: Mapping[str, EvaluatorsType] = dataclasses.field(
+        default_factory=lambda: {},
+        metadata={
+            'help_text':
+                'Variables to provide for the interpolation of tags.',
+            'help_samples': [[
+                help_docs.ClassBasedSample(AncestorPathEvaluator),
+                help_docs.ClassBasedSample(RelativePositionEvaluator),
+            ]],
+        })
+
+    def get_variables(
+            self,
+            element: doc_struct.Element,
+            path: Sequence[doc_struct.Element] | None = None
+    ) -> Mapping[str, Any]:
+        """Gather variables and values from all evaluators."""
+        return {
+            name: variable.get_value(element, path)
+            for name, variable in self.variables.items()
+        }

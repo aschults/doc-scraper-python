@@ -375,7 +375,7 @@ class TestTaggingTransform(unittest.TestCase):
         """Check that ancestors are passed during tag value interpolation."""
         data = doc_struct.Paragraph(tags={'id': '111'},
                                     elements=[doc_struct.TextRun(text='text')])
-        config = tags_basic.TaggingConfig(
+        config = tags_basic.ElementTaggingConfig(
             tags=tags_basic.TagUpdateConfig(
                 add={'a': '>{ancestors[0].tags[id]}<'}),
             match_element=tags_basic.TagMatchConfig(
@@ -392,10 +392,11 @@ class TestTaggingTransform(unittest.TestCase):
     def test_ancestors_interpolation_bad_key(self):
         """Test the proper handling of KeyErrors during interpolation."""
         data = doc_struct.TextRun(text='text')
-        config_raise = tags_basic.TaggingConfig(
+        config_raise = tags_basic.ElementTaggingConfig(
             tags=tags_basic.TagUpdateConfig(add={'a': '{bad_key}'}))
-        config_skip = tags_basic.TaggingConfig(tags=tags_basic.TagUpdateConfig(
-            add={'a': '{bad_key}'}, ignore_key_errors=True))
+        config_skip = tags_basic.ElementTaggingConfig(
+            tags=tags_basic.TagUpdateConfig(add={'a': '{bad_key}'},
+                                            ignore_errors=True))
 
         self.assertRaisesRegex(
             KeyError,
@@ -403,6 +404,6 @@ class TestTaggingTransform(unittest.TestCase):
             lambda: tags_basic.TaggingTransform(config_raise)(data),
         )
         self.assertEqual(
-            '<<KeyError: \'bad_key\'>>',
+            '<<Error: \'bad_key\'>>',
             tags_basic.TaggingTransform(config_skip)(data).tags['a'],
         )

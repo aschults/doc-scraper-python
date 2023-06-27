@@ -1,9 +1,18 @@
 """Test the basic transformations for all elements."""
 
-from typing import Set
+from typing import (
+    TypeVar,
+    Optional,
+    Sequence,
+    Any,
+    Set,
+    cast,
+    Mapping,
+    Tuple,
+)
 import unittest
 import dataclasses
-from typing import TypeVar, Optional
+import re
 
 from parameterized import parameterized  # type:ignore
 
@@ -110,8 +119,8 @@ def _deref(obj: Optional[_T]) -> _T:
 
 def _tag_type_descendent(
     element_type: type[doc_struct.Element]
-) -> tags_relation.RelationalTaggingConfig:
-    return tags_relation.RelationalTaggingConfig(
+) -> tags_relation.RelativeTaggingConfig:
+    return tags_relation.RelativeTaggingConfig(
         match_descendent=tags_basic.TagMatchConfig(
             element_types=[element_type]),
         tags=tags_basic.TagUpdateConfig(add={'x': '1'}),
@@ -122,8 +131,8 @@ def _tag_type_ancestor(
     *element_type: type[doc_struct.Element],
     position: tags_relation.PositionMatchConfig = tags_relation.
     PositionMatchConfig()
-) -> tags_relation.RelationalTaggingConfig:
-    return tags_relation.RelationalTaggingConfig(
+) -> tags_relation.RelativeTaggingConfig:
+    return tags_relation.RelativeTaggingConfig(
         match_ancestor_list=[
             tags_relation.PositionMatchConfig(element_types=[element])
             for element in element_type
@@ -188,7 +197,7 @@ class TestRelationMatching(unittest.TestCase):
     ])
     # pylint: disable=unused-argument
     def test_match_descendents(self, summary: str, data: doc_struct.Element,
-                               config: tags_relation.RelationalTaggingConfig,
+                               config: tags_relation.RelativeTaggingConfig,
                                expected: Set[str]):
         """Test the match_descendents function."""
         result = tags_basic.TaggingTransform(config)(data)
@@ -252,7 +261,7 @@ class TestRelationMatching(unittest.TestCase):
     ])
     # pylint: disable=unused-argument
     def test_match_ancesors(self, summary: str, data: doc_struct.Element,
-                            config: tags_relation.RelationalTaggingConfig,
+                            config: tags_relation.RelativeTaggingConfig,
                             expected: Set[str]):
         """Test the match_descendents function."""
         result = tags_basic.TaggingTransform(config)(data)
@@ -348,7 +357,7 @@ class TestRelationMatching(unittest.TestCase):
     ])
     # pylint: disable=unused-argument
     def test_match_position(self, summary: str, data: doc_struct.Element,
-                            config: tags_relation.RelationalTaggingConfig,
+                            config: tags_relation.RelativeTaggingConfig,
                             expected: Set[str]):
         """Test the match_descendents function."""
         result = tags_basic.TaggingTransform(config)(data)
@@ -473,3 +482,367 @@ class TestCoordinateGrid(unittest.TestCase):
         self.assertIsNone(grid.get(None))
         self.assertIsNone(grid.get(2))
         self.assertIsNone(grid.find(PARAGRAPH_FLAT.elements[3]))
+
+
+class TestCalcRelativeIndex(unittest.TestCase):
+    """Test helper function to calculate relative index."""
+
+    @parameterized.expand([  # type: ignore
+        (
+            (3, 4, 'first'),
+            0,
+        ),
+        (
+            (3, 4, None),
+            3,
+        ),
+        (
+            (1, 4, 'last'),
+            3,
+        ),
+        (
+            (3, 4, 'last'),
+            3,
+        ),
+        (
+            (2, 4, 'next'),
+            3,
+        ),
+        (
+            (3, 4, 'next'),
+            None,
+        ),
+        (
+            (2, 4, 'prev'),
+            1,
+        ),
+        (
+            (0, 4, 'prev'),
+            None,
+        ),
+    ])
+    def test_basics(self, args: Sequence[Any], expected: Optional[int]):
+        """Test various cases for relative index calculation."""
+        self.assertEqual(expected, tags_relation.calc_relative_index(*args))
+
+
+# Larger, 4x4 table
+TABLE2 = doc_struct.Table(
+    tags={'id': '0'},
+    elements=[
+        [
+            doc_struct.DocContent(tags={'id': '11'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '12'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '13'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '14'}, elements=[]),
+        ],
+        [
+            doc_struct.DocContent(tags={'id': '21'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '22'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '23'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '24'}, elements=[]),
+        ],
+        [
+            doc_struct.DocContent(tags={'id': '31'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '32'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '33'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '34'}, elements=[]),
+        ],
+        [
+            doc_struct.DocContent(tags={'id': '41'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '42'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '43'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '44'}, elements=[]),
+        ],
+    ],
+)
+
+
+class TestEvaluators(unittest.TestCase):
+    """Test the evaluator classes."""
+
+    # Used as path and as elements for NESTED_PATH.
+    PATH = [
+        doc_struct.ParagraphElement(tags={'id': '1'}),
+        doc_struct.ParagraphElement(tags={'id': '2'}),
+        doc_struct.ParagraphElement(tags={'id': '3'}),
+        doc_struct.ParagraphElement(tags={'id': '4'}),
+    ]
+
+    # Simple, 2 level strcuture to use for position evaluators.
+    NESTED_PATH = [
+        doc_struct.Paragraph(elements=PATH),
+        PATH[2],
+    ]
+
+    # Inner elements of a vertical structure.
+    ELEMENTS_VERTICAL = [
+        doc_struct.Paragraph(tags={'id': '1'}, elements=[]),
+        doc_struct.Paragraph(tags={'id': '2'}, elements=[]),
+        doc_struct.Paragraph(tags={'id': '3'}, elements=[]),
+        doc_struct.Paragraph(tags={'id': '4'}, elements=[]),
+    ]
+
+    # Vertical structure for position tests.
+    NESTED_VERTICAL = doc_struct.DocContent(elements=ELEMENTS_VERTICAL)
+
+    def test_ancestor_path(self):
+        """Test the generation of a path from ancestors."""
+        evaluator = tags_relation.AncestorPathEvaluator(
+            level_value='{0.tags[id]}')
+        self.assertEqual('1/2/3', evaluator.get_value(self.PATH[-1],
+                                                      self.PATH))
+        self.assertEqual('1', evaluator.get_value(self.PATH[-1],
+                                                  self.PATH[0:2]))
+        self.assertEqual('', evaluator.get_value(self.PATH[-1],
+                                                 self.PATH[0:1]))
+
+    def test_ancestor_separator_and_value(self):
+        """Test custom value and separator for path generation."""
+        evaluator = tags_relation.AncestorPathEvaluator(
+            level_value='X{0.tags[id]}Y', separator=':')
+        self.assertEqual('X1Y:X2Y',
+                         evaluator.get_value(self.PATH[-1], self.PATH[:3]))
+
+    def test_ancestor_path_range(self):
+        """Test start and end for paths."""
+        evaluator = tags_relation.AncestorPathEvaluator(
+            level_value='{0.tags[id]}', level_start=1)
+        self.assertEqual('2/3', evaluator.get_value(self.PATH[-1], self.PATH))
+
+        evaluator = tags_relation.AncestorPathEvaluator(
+            level_value='{0.tags[id]}', level_end=2)
+        self.assertEqual('1/2', evaluator.get_value(self.PATH[-1], self.PATH))
+
+        evaluator = tags_relation.AncestorPathEvaluator(
+            level_value='{0.tags[id]}', level_start=1, level_end=2)
+        self.assertEqual('2', evaluator.get_value(self.PATH[-1], self.PATH))
+
+        evaluator = tags_relation.AncestorPathEvaluator(
+            level_value='{0.tags[id]}', level_start=1, level_end=1)
+        self.assertEqual('', evaluator.get_value(self.PATH[-1], self.PATH))
+
+    @parameterized.expand([  # type:ignore
+        (
+            tags_relation.RelativePositionConfig(col='first'),
+            '1',
+        ),
+        (
+            tags_relation.RelativePositionConfig(col='last'),
+            '4',
+        ),
+        (
+            tags_relation.RelativePositionConfig(col='prev'),
+            '2',
+        ),
+        (
+            tags_relation.RelativePositionConfig(col='next'),
+            '4',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='next'),
+            None,
+        ),
+    ])
+    def test_relative_position_horizontal(
+            self, rel_pos: tags_relation.RelativePositionConfig,
+            expected: Optional[str]):
+        """Test horizontal relative positioning."""
+        evaluator = tags_relation.RelativePositionEvaluator(element_at=rel_pos)
+        result: Optional[doc_struct.Element] = evaluator.get_value(
+            self.PATH[2], self.NESTED_PATH)
+        result_tag = result.tags['id'] if result is not None else None
+        self.assertEqual(expected, result_tag)
+
+    @parameterized.expand([  # type:ignore
+        (
+            tags_relation.RelativePositionConfig(),
+            '4',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='first'),
+            '1',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='last'),
+            '4',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='prev'),
+            '3',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='next'),
+            None,
+        ),
+    ])
+    def test_relative_position_vertical(
+            self, rel_pos: tags_relation.RelativePositionConfig,
+            expected: Optional[str]):
+        """Test vertical relative positioning."""
+        evaluator = tags_relation.RelativePositionEvaluator(element_at=rel_pos)
+        result: Optional[doc_struct.Element] = evaluator.get_value(
+            self.ELEMENTS_VERTICAL[3],
+            [self.NESTED_VERTICAL, self.ELEMENTS_VERTICAL[3]])
+        result_tag = result.tags['id'] if result is not None else None
+        self.assertEqual(expected, result_tag)
+
+    @parameterized.expand([  # type:ignore
+        (
+            tags_relation.RelativePositionConfig(),
+            '43',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='first'),
+            '13',
+        ),
+        (
+            tags_relation.RelativePositionConfig(col='first'),
+            '41',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='first', col='first'),
+            '11',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='last', col='first'),
+            '41',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='prev', col='next'),
+            '34',
+        ),
+        (
+            tags_relation.RelativePositionConfig(row='next', col='prev'),
+            None,
+        ),
+    ])
+    def test_relative_position_2d(
+            self, rel_pos: tags_relation.RelativePositionConfig,
+            expected: Optional[str]):
+        """Test 2d relative positioning."""
+        evaluator = tags_relation.RelativePositionEvaluator(element_at=rel_pos)
+        result: Optional[doc_struct.Element] = evaluator.get_value(
+            TABLE2.elements[3][2], [TABLE2, TABLE2.elements[3][2]])
+        result_tag = result.tags['id'] if result is not None else None
+        self.assertEqual(expected, result_tag)
+
+
+class TestRelativeTaggingTransform(unittest.TestCase):
+    """Test the full transform for relative tagging."""
+
+    @parameterized.expand([  # type: ignore
+        (
+            'no var',
+            re.compile('33'),
+            '_{0.tags[id]}_',
+            {},
+            [('33', '_33_')],
+        ),
+        (
+            'no move var',
+            re.compile('43'),
+            '_{v.tags[id]}_',
+            {
+                'v':
+                    tags_relation.RelativePositionEvaluator(
+                        element_at=tags_relation.RelativePositionConfig()),
+            },
+            [('43', '_43_')],
+        ),
+        (
+            'tl move var',
+            re.compile('43'),
+            '_{v.tags[id]}_',
+            {
+                'v':
+                    tags_relation.RelativePositionEvaluator(
+                        element_at=tags_relation.RelativePositionConfig(
+                            col='first', row='first')),
+            },
+            [('43', '_11_')],
+        ),
+        (
+            'move to none var',
+            re.compile('43'),
+            '_{v.tags[id]}_',
+            {
+                'v':
+                    tags_relation.RelativePositionEvaluator(
+                        element_at=tags_relation.RelativePositionConfig(
+                            row='next')),
+            },
+            [
+                ('43',
+                 '<<Error: \'NoneType\' object has no attribute \'tags\'>>'),
+            ],
+        ),
+        (
+            'multiple var',
+            re.compile('33'),
+            '_{v1.tags[id]}_{v2.tags[id]}_',
+            {
+                'v1':
+                    tags_relation.RelativePositionEvaluator(
+                        element_at=tags_relation.RelativePositionConfig(
+                            row='prev')),
+                'v2':
+                    tags_relation.RelativePositionEvaluator(
+                        element_at=tags_relation.RelativePositionConfig(
+                            row='next')),
+            },
+            [('33', '_23_43_')],
+        ),
+        (
+            'ancestor path var',
+            re.compile('33'),
+            '_{v}_',
+            {
+                'v':
+                    tags_relation.AncestorPathEvaluator(
+                        level_value='>{0.tags[id]}<'),
+            },
+            [('33', '_>0<_')],
+        ),
+        (
+            'ancestor path var empty',
+            re.compile('33'),
+            '_{v}_',
+            {
+                'v':
+                    tags_relation.AncestorPathEvaluator(
+                        level_value='>{0.tags[id]}<', level_start=2),
+            },
+            [('33', '__')],
+        ),
+    ])
+    # pylint: disable=unused-argument
+    def test_transform(
+        self,
+        name: str,
+        pattern: re.Pattern[str],
+        template: str,
+        variables: Mapping[str, Any],
+        expected: Sequence[Tuple[str, str]],
+    ):
+        """Execute the transformation for various configs."""
+        config = tags_relation.RelativeTaggingConfig(
+            match_element=tags_relation.PositionMatchConfig(
+                required_tag_sets=[{
+                    'id': pattern
+                }]),
+            tags=tags_basic.TagUpdateConfig(
+                add={'x': template},
+                ignore_errors=True,
+            ),
+            variables=variables)
+        transform = tags_basic.TaggingTransform(config)
+
+        result = cast(doc_struct.Table, transform(TABLE2))
+
+        added_tags = [(element.tags['id'], element.tags.get('x'))
+                      for row in result.elements
+                      for element in row
+                      if 'x' in element.tags]
+
+        self.assertEqual(expected, added_tags)

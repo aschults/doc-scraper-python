@@ -18,20 +18,20 @@ class RegexReplaceRule():
     regex: re.Pattern[str] = dataclasses.field(
         metadata={
             'help_text': 'The Python regex to match.',
-            'help_sampes': [('All spaces (including newline)', r'\s+')]
+            'help_samples': [('All spaces (including newline)', r'\s+')]
         })
 
     substitute: str = dataclasses.field(
         metadata={
             'help_text': 'The replacement text.',
-            'help_sampes': [('Replace with one space', ' ')]
+            'help_samples': [('Replace with one space', ' ')]
         })
 
     operation: str = dataclasses.field(
         default='',
         metadata={
             'help_text': 'Additional operation to apply.',
-            'help_sampes': [('Make all lower case', 'lower')]
+            'help_samples': [('Make all lower case', 'lower')]
         })
 
 
@@ -51,6 +51,7 @@ class RegexReplacerConfig():
     substitutions: List[RegexReplaceRule] = dataclasses.field(
         metadata={
             'help_text': 'List of regex-based replacements.',
+            'help_samples': [[help_docs.ClassBasedSample(RegexReplaceRule)]],
         })
 
     def transform_text(self, text: str) -> str:

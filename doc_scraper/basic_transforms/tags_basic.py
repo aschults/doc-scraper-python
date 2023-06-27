@@ -16,6 +16,7 @@ from typing import (
 )
 import dataclasses
 import re
+from abc import abstractmethod
 
 from doc_scraper import doc_struct
 from doc_scraper import help_docs
@@ -169,9 +170,11 @@ class ElementExpressionMatchConfig():
             ]
         })
 
-    regex_match: re.Pattern[str] = dataclasses.field(metadata={
-        'help_docs': 'The regex against which to match the expression',
-    })
+    regex_match: re.Pattern[str] = dataclasses.field(
+        metadata={
+            'help_docs': 'The regex against which to match the expression',
+            'help_samples': [re.compile('text---http.*')],
+        })
 
     ignore_key_errors: bool = dataclasses.field(
         default=False,
@@ -285,7 +288,7 @@ class TagMatchConfig():
             'help_text':
                 'The Python regex to match with element\'s ' +
                 'text representation.',
-            'help_sampes': [r'some text\s+in doc']
+            'help_samples': [r'some text\s+in doc']
         })
 
     element_expressions: Sequence[
@@ -404,7 +407,7 @@ class TagUpdateConfig():
                                           metadata={
                                               'help_text':
                                                   'A list of tags to add.',
-                                              'help_sampes': [{
+                                              'help_samples': [{
                                                   'tag1': 'val1',
                                                   'tag2': 'val2'
                                               }]
@@ -415,18 +418,18 @@ class TagUpdateConfig():
         metadata={
             'help_text':
                 'A list of tags to remove. Use "*" to clear all.',
-            'help_sampes': [
+            'help_samples': [
                 ('Add two tags', ['tag3', 'tag4']),
                 ('Clear tags before adding', ['*']),
             ]
         })
 
-    ignore_key_errors: bool = dataclasses.field(
+    ignore_errors: bool = dataclasses.field(
         default=False,
         metadata={
             'help_docs':
-                'If set to true, KeyErrors are ignored and a value to' +
-                'show the error is used instead.',
+                'If set to true, KeyError, IndexError and AttributeError ' +
+                'are ignored and a value to show the error is used instead.',
         })
 
     # pylint: disable=unused-argument
@@ -435,9 +438,9 @@ class TagUpdateConfig():
         """Interpolate a tag value with element and other data."""
         try:
             return template.format(*args, **kwargs)
-        except KeyError as exc:
-            if self.ignore_key_errors:
-                return f'<<KeyError: {exc}>>'
+        except (KeyError, IndexError, AttributeError) as exc:
+            if self.ignore_errors:
+                return f'<<Error: {exc}>>'
             raise exc
 
     def update_tags(self, element: _T, **substitutes: Any) -> _T:
@@ -459,6 +462,69 @@ class TagUpdateConfig():
 
 @dataclasses.dataclass(kw_only=True)
 class TaggingConfig():
+    """Configuration for tagging elements."""
+
+    tags: TagUpdateConfig = dataclasses.field(
+        metadata={
+            'help_text': 'Updates for tags',
+            'help_samples': [help_docs.ClassBasedSample(TagUpdateConfig)],
+        })
+
+    def update_tags(self, element: doc_struct.Element,
+                    **variables: Any) -> doc_struct.Element:
+        """Update the passed element with the speficied tags.
+
+        Delegate to the config classes.
+        """
+        return self.tags.update_tags(element, **variables)
+
+    # pylint: disable=unused-argument
+    def get_variables(
+            self,
+            element: doc_struct.Element,
+            path: Sequence[doc_struct.Element] | None = None
+    ) -> Mapping[str, Any]:
+        """Provide variables for interpolation.
+
+        Returns:
+            Mapping with
+            - `ancestors`: List of ancestor elements, starting with the
+                lowest/closest ancestor.
+        """
+        if not path:
+            return {'ancestors': []}
+
+        ancestors = list(path[:-1])
+        reversed(ancestors)
+        return {'ancestors': ancestors}
+
+
+class TaggingTransformConfigProtocol(Protocol):
+    """Interface required to work with TaggingTransform."""
+
+    @abstractmethod
+    def is_matching(
+            self,
+            element: doc_struct.Element,
+            path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
+        """Check if an element matches."""
+
+    @abstractmethod
+    def update_tags(self, element: doc_struct.Element,
+                    **variables: Any) -> doc_struct.Element:
+        """Update the passed element with the speficied tags."""
+
+    @abstractmethod
+    def get_variables(
+        self,
+        element: doc_struct.Element,
+        path: Optional[Sequence[doc_struct.Element]] = None
+    ) -> Mapping[str, Any]:
+        """Fetch the variables to use for interpolation."""
+
+
+@dataclasses.dataclass(kw_only=True)
+class ElementTaggingConfig(TaggingConfig, TaggingTransformConfigProtocol):
     """Configuration for matching and tagging elements."""
 
     match_element: TagMatchConfig = dataclasses.field(
@@ -466,10 +532,6 @@ class TaggingConfig():
         metadata={
             'help_text': 'Criteria to match elements for tagging.',
         })
-
-    tags: TagUpdateConfig = dataclasses.field(metadata={
-        'help_text': 'Updates for tags',
-    })
 
     def is_matching(
             self,
@@ -480,28 +542,6 @@ class TaggingConfig():
         Delegate to the config classes for the check.
         """
         return self.match_element.is_matching(element, path)
-
-    def update_tags(self, element: doc_struct.Element,
-                    **variables: Any) -> doc_struct.Element:
-        """Update the passed element with the speficied tags.
-
-        Delegate to the config classes.
-        """
-        return self.tags.update_tags(element, **variables)
-
-
-class TaggingTransformConfigProtocol(Protocol):
-    """Interface required to work with TaggingTransform."""
-
-    def is_matching(
-            self,
-            element: doc_struct.Element,
-            path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
-        """Check if an element matches."""
-
-    def update_tags(self, element: doc_struct.Element,
-                    **variables: Any) -> doc_struct.Element:
-        """Update the passed element with the speficied tags."""
 
 
 class TaggingTransform(doc_transform.Transformation):
@@ -524,13 +564,13 @@ class TaggingTransform(doc_transform.Transformation):
             self, element: doc_struct.Element) -> doc_struct.Element:
         """Transform (tag) all elements."""
         if self.config.is_matching(element, self.context.path_objects):
-            ancestors = list(self.context.path_objects[:-1])
-            reversed(ancestors)
-            element = self.config.update_tags(element, ancestors=ancestors)
+            variables = self.config.get_variables(element,
+                                                  self.context.path_objects)
+            element = self.config.update_tags(element, **variables)
 
         return super()._transform_element_base(element)
 
     @classmethod
-    def from_config(cls, config: TaggingConfig) -> 'TaggingTransform':
+    def from_config(cls, config: ElementTaggingConfig) -> 'TaggingTransform':
         """Create an instance from config class."""
         return TaggingTransform(config=config)

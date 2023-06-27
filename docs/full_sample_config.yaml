@@ -5,7 +5,12 @@
 sources:
     # Load from local files (as HTML).
     - kind: doc_files
+      # Configuration to load from local files.
       config:
+        # Paths to local files.
+        doc_filenames:
+        -   "/path/to/a"
+        -   "/path/to/b"
       
     # Load from Google Drive API as exported HTML.
     - kind: google_doc_html
@@ -52,12 +57,12 @@ transformations:
             # If set to True, quotes in style values are removed.
             skip_style_quotes: True  # Default
             # The Python regex to match with element's text representation.
-            aggregated_text_regex:  # Default
+            aggregated_text_regex: "some text\s+in doc"
             # List of expressions to interpolate and match.
             element_expressions:
             -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
                     # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
-                regex_match: ...
+                regex_match: text---http.*
                 ignore_key_errors: False  # Default
       
     # Rearrange bullet items so they are properly nested (in attribute named "neseted"
@@ -95,24 +100,55 @@ transformations:
             # If set to True, quotes in style values are removed.
             skip_style_quotes: True  # Default
             # The Python regex to match with element's text representation.
-            aggregated_text_regex:  # Default
+            aggregated_text_regex: "some text\s+in doc"
             # List of expressions to interpolate and match.
             element_expressions:
             -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
                     # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
-                regex_match: ...
+                regex_match: text---http.*
                 ignore_key_errors: False  # Default
         # List of regex-based replacements.
-        substitutions: ...
+        substitutions:
+        -   # The Python regex to match.
+            regex: "\s+"  # All spaces (including newline)
+            # The replacement text.
+            substitute: " "  # Replace with one space
+            # Additional operation to apply.
+            operation: "lower"  # Make all lower case
       
     # Remove unwanted keys from attrs, style and ShardData.style_rules
     - kind: strip_elements
+      # Configuration for removing unwanted attributes.
       config:
+        # List for regexes. Matching keys in `attribs` are removed.
+        remove_attrs_re:  # Remove all starting with _ or X_
+        -   "_.*"
+        -   "X_.*"
+        # List for regexes. Matching keys in `styles` are removed.
+        remove_styles_re:  # Remove all styles with "font" in the key
+        -   ".*font.*"
+        # List for regexes. Matching keys in `style_rules are removed from SharedData.
+        remove_style_rules_re:  # Remove all starting ".lst" or "ul."
+        -   "\.lst.*"
+        -   "ul\..*"
       
     # Add tags to any element if they match the criteria.
-    - kind: tag_by_match
-      # Describe matching and tagging criteria including inter-element.
+    - kind: tag_matching
+      # Match and tag elements, including variables for interpolation.
       config:
+        # Updates for tags
+        tags:
+            # A list of tags to add.
+            add:
+                tag1: "val1"
+                tag2: "val2"
+            # A list of tags to remove. Use "*" to clear all.
+            remove:  # Add two tags
+            -   "tag3"
+            -   "tag4"
+                # remove:  # Clear tags before adding
+                # -   "*"
+            ignore_errors: False  # Default
         # Criteria to match elements for tagging.
         match_element:  # Default
             element_types:  # Any paragraph element, e.g. TextRun
@@ -139,12 +175,12 @@ transformations:
             # If set to True, quotes in style values are removed.
             skip_style_quotes: True  # Default
             # The Python regex to match with element's text representation.
-            aggregated_text_regex:  # Default
+            aggregated_text_regex: "some text\s+in doc"
             # List of expressions to interpolate and match.
             element_expressions:
             -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
                     # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
-                regex_match: ...
+                regex_match: text---http.*
                 ignore_key_errors: False  # Default
             # Horitzontal start of matched elements. Unbound if not set.
             start_col: 0  # From first col
@@ -158,13 +194,27 @@ transformations:
             # Vertical end of matched elements. Unbound if not set.
             end_row: 4  # Until 3rd row
                 # end_row: 1  # First row
-        # Updates for tags
-        tags: ...
         # List of ordered criteria to match along the ancestors
         match_ancestor_list:  # Default
         
         # Criteria to match any descendent of the current element.
         match_descendent:  # Default
+        # Variables to provide for the interpolation of tags.
+        variables:
+        -   # Template to use to render each level's value.
+            level_value: "0.tags[heading]"  # tag "heading" of each level
+            # Separator between each level_value
+            separator: "/"  # Default
+            # Level starting from 0 at the root to start the path.
+            level_start: 1  # start at the 2nd level
+            # Level starting from 0 at the root to end the path.
+            level_end: 2  # exclude level 3 and below
+        -   # Relative position at which to get the element.
+            element_at:
+                # Horizontal relative position of the element.
+                col: first # others: last, prev, next
+                # Vertical relative position of the element.
+                row: first # others: last, prev, next
       
     
 
@@ -172,7 +222,10 @@ transformations:
 sinks:
     # Write to a single file, with separators between.
     - kind: single_file
+      # Configuration to write to a single file, concatenated.
       config:
+        # Provide a filename to write to. Default: stdout
+        output_file: "/tmp/file.json"
       
     # Write to stdout, with separators between.
     - kind: stdout

@@ -192,6 +192,7 @@ def get_default_builder(
         help_doc='Load from Google Drive API as exported HTML.')
     default_builder.register('doc_files',
                              FileLoader.from_config,
+                             config_type=FileLoaderConfig,
                              help_doc='Load from local files (as HTML).')
 
     return default_builder
