@@ -310,7 +310,7 @@ class AsYamlTest(unittest.TestCase):
         {spc4}
 
         # Places to write down the result
-        sinks:
+        outputs:
             # thetext
             - kind: thename
               text2config:

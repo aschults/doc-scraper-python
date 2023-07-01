@@ -247,7 +247,7 @@ class TestTagMergePolicy(unittest.TestCase):
             'matching single tag',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')]),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
             'ab',
@@ -256,7 +256,7 @@ class TestTagMergePolicy(unittest.TestCase):
             'matching single tag with extra',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')]),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'z'), text='b'),
             'ab',
@@ -265,8 +265,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'matching single tag, after non-match',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(required_tag_sets=[
-                    tags_basic.match_for('x', 'y'),
-                    tags_basic.match_for('x'),
+                    tags_basic.MappingMatcher.tags('x', 'y'),
+                    tags_basic.MappingMatcher.tags('x'),
                 ]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
@@ -276,8 +276,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'matching single tag, after first match only',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(required_tag_sets=[
-                    tags_basic.match_for('x', 'y'),
-                    tags_basic.match_for('x'),
+                    tags_basic.MappingMatcher.tags('x', 'y'),
+                    tags_basic.MappingMatcher.tags('x'),
                 ]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
@@ -286,17 +286,18 @@ class TestTagMergePolicy(unittest.TestCase):
         (
             'matching tag set',
             paragraph_basic.TagMergeConfig(
-                match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x', 'y')]),),
+                match_element=tags_basic.TagMatchConfig(required_tag_sets=[
+                    tags_basic.MappingMatcher.tags('x', 'y')
+                ]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y'), text='b'),
             'ab',
         ),
         (
             'matching tag set plus matching tag',
-            paragraph_basic.TagMergeConfig(
-                match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x', 'y')]),),
+            paragraph_basic.
+            TagMergeConfig(match_element=tags_basic.TagMatchConfig(
+                required_tag_sets=[tags_basic.MappingMatcher.tags('x', 'y')])),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y', 'z'),
                                text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'y', 'z'),
@@ -307,8 +308,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'Non-matching rejected tag',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')],
-                    rejected_tags=tags_basic.match_for('r')),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')],
+                    rejected_tags=tags_basic.MappingMatcher.tags('r')),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
             'ab',
@@ -368,7 +369,7 @@ class TestTagMergePolicy(unittest.TestCase):
             'Missing tags',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')]),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')]),),
             doc_struct.TextRun(text='a'),
             doc_struct.TextRun(text='b'),
         ),
@@ -376,7 +377,7 @@ class TestTagMergePolicy(unittest.TestCase):
             'Missing 2nd tags',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')]),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(text='b'),
         ),
@@ -384,7 +385,7 @@ class TestTagMergePolicy(unittest.TestCase):
             'Missing 1st tag',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')]),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')]),),
             doc_struct.TextRun(text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
         ),
@@ -392,7 +393,7 @@ class TestTagMergePolicy(unittest.TestCase):
             'unrelated, matching tags',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')]),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('y'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('z'), text='b'),
         ),
@@ -400,7 +401,7 @@ class TestTagMergePolicy(unittest.TestCase):
             'Only 1st matching',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')]),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('z'), text='b'),
         ),
@@ -408,23 +409,25 @@ class TestTagMergePolicy(unittest.TestCase):
             'Only 2nd matching',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')]),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('y'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
         ),
         (
             'Tag set not subset',
             paragraph_basic.TagMergeConfig(
-                match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x', 'y')]),),
+                match_element=tags_basic.TagMatchConfig(required_tag_sets=[
+                    tags_basic.MappingMatcher.tags('x', 'y')
+                ]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
         ),
         (
             'Tag set not not intersecting',
             paragraph_basic.TagMergeConfig(
-                match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x', 'y')]),),
+                match_element=tags_basic.TagMatchConfig(required_tag_sets=[
+                    tags_basic.MappingMatcher.tags('x', 'y')
+                ]),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'z'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('y', 'z'), text='b'),
         ),
@@ -432,8 +435,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'Rejected in 1st',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')],
-                    rejected_tags=tags_basic.match_for('r')),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')],
+                    rejected_tags=tags_basic.MappingMatcher.tags('r')),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'r'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='b'),
         ),
@@ -441,8 +444,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'Rejected in 2st',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')],
-                    rejected_tags=tags_basic.match_for('r')),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')],
+                    rejected_tags=tags_basic.MappingMatcher.tags('r')),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'r'), text='b'),
         ),
@@ -450,8 +453,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'Rejected in 2st',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    required_tag_sets=[tags_basic.match_for('x')],
-                    rejected_tags=tags_basic.match_for('r', 'q')),),
+                    required_tag_sets=[tags_basic.MappingMatcher.tags('x')],
+                    rejected_tags=tags_basic.MappingMatcher.tags('r', 'q')),),
             doc_struct.TextRun(tags=doc_struct.tags_for('x'), text='a'),
             doc_struct.TextRun(tags=doc_struct.tags_for('x', 'r'), text='b'),
         ),

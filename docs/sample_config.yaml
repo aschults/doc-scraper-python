@@ -7,16 +7,16 @@ sources:
     #- yyyy
 transformations:
 - kind: nest_bullets
-- kind: tag_by_style
+- kind: tag_matching
   config:
-    tag_key: blah
-    matcher:
-      rules:
-      - tag: 'highlighted'
-        include:
-        - backgorund-color: #ff0000
-        exclude:
-        - font-weight: bold
+    tags:
+      add:
+        highlighted: '1'
+    match_element:
+      required_style_sets:
+      - backgorund-color: '#ff0000'
+      rejected_styles:
+        font-weight: bold
 - kind: merge_by_tag
   config: 
     acceptable_tag_sets: 

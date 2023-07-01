@@ -828,9 +828,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
         """Execute the transformation for various configs."""
         config = tags_relation.RelativeTaggingConfig(
             match_element=tags_relation.PositionMatchConfig(
-                required_tag_sets=[{
-                    'id': pattern
-                }]),
+                required_tag_sets=[tags_basic.MappingMatcher(id=pattern)]),
             tags=tags_basic.TagUpdateConfig(
                 add={'x': template},
                 ignore_errors=True,

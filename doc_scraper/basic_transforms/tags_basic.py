@@ -23,13 +23,6 @@ from doc_scraper import help_docs
 from doc_scraper import doc_transform
 
 
-def match_for(
-    *tags: str, pattern: re.Pattern[str] = re.compile('.+')
-) -> Mapping[str, re.Pattern[str]]:
-    """Create tag matchers from sequence."""
-    return {item: pattern for item in tags}
-
-
 class ElementFilterConverter(
         doc_struct.ConverterBase[Sequence[doc_struct.Element]]):
     """Convert an element tree into a squence of elements, filtered."""
@@ -137,8 +130,38 @@ class ElementFilterConverter(
         return self._filter(element, *elements)
 
 
-# Type used to match tags.
-TagMatcherType = Mapping[str, re.Pattern[str]]
+class MappingMatcher():
+    """Match a dict of tags against a dict of tags with regexes."""
+
+    def __init__(self, **mapping: re.Pattern[str]) -> None:
+        """Create an instance."""
+        self._mapping = mapping
+
+    @classmethod
+    def tags(
+        cls, *tags: str, pattern: re.Pattern[str] = re.compile('.+')
+    ) -> 'MappingMatcher':
+        """Create matcher for multiple tags with the same regex."""
+        return MappingMatcher(**{item: pattern for item in tags})
+
+    def all(self, tags: Mapping[str, str]) -> bool:
+        """Return true if all of the tags match."""
+        for key, value in self._mapping.items():
+            if key not in tags:
+                return False
+            if not value.match(tags[key]):
+                return False
+        return True
+
+    def any(self, tags: Mapping[str, str]) -> bool:
+        """Return true if any of the tags match."""
+        for key, value in self._mapping.items():
+            if key not in tags:
+                continue
+            if value.match(tags[key]):
+                return True
+        return False
+
 
 # All types that contain a text attribute.
 TEXT_ELEMENT_TYPES = (
@@ -227,7 +250,7 @@ class TagMatchConfig():
             ]
         })
 
-    required_tag_sets: Sequence[TagMatcherType] = dataclasses.field(
+    required_tag_sets: Sequence[MappingMatcher] = dataclasses.field(
         default_factory=list,
         metadata={
             'help_text':
@@ -240,8 +263,8 @@ class TagMatchConfig():
                 'C': re.compile('.*')
             }]],
         })
-    rejected_tags: TagMatcherType = dataclasses.field(
-        default_factory=dict,
+    rejected_tags: MappingMatcher = dataclasses.field(
+        default_factory=MappingMatcher,
         metadata={
             'help_text':
                 'Tags that stop any match if present.',
@@ -249,25 +272,24 @@ class TagMatchConfig():
                               ['X'])]
         })
 
-    required_style_sets: Sequence[Mapping[
-        str, re.Pattern[str]]] = dataclasses.field(
-            default_factory=list,
-            metadata={
-                'help_text':
-                    'Styles required for the tag to match. All need to match.',
-                'help_samples': [[
-                    {
-                        'font-size': '20pt',
-                        'font-weight': 'bold'
-                    },
-                    {
-                        'color': 'red'
-                    },
-                ]]
-            })
+    required_style_sets: Sequence[MappingMatcher] = dataclasses.field(
+        default_factory=list,
+        metadata={
+            'help_text':
+                'Styles required for the tag to match. All need to match.',
+            'help_samples': [[
+                {
+                    'font-size': '20pt',
+                    'font-weight': 'bold'
+                },
+                {
+                    'color': 'red'
+                },
+            ]]
+        })
 
-    rejected_styles: Mapping[str, re.Pattern[str]] = dataclasses.field(
-        default_factory=dict,
+    rejected_styles: MappingMatcher = dataclasses.field(
+        default_factory=MappingMatcher.tags,
         metadata={
             'help_text':
                 'Styles that prevent matching. Only one needs to match.',
@@ -319,26 +341,6 @@ class TagMatchConfig():
 
         return True
 
-    def _match_all(self, tags: Mapping[str, str],
-                   match: TagMatcherType) -> bool:
-        """Return true if all of the tags match."""
-        for key, value in match.items():
-            if key not in tags:
-                return False
-            if not value.match(tags[key]):
-                return False
-        return True
-
-    def _match_any(self, tags: Mapping[str, str],
-                   match: TagMatcherType) -> bool:
-        """Return true if any of the tags match."""
-        for key, value in match.items():
-            if key not in tags:
-                continue
-            if value.match(tags[key]):
-                return True
-        return False
-
     def _cleanup_style(self, value: str) -> str:
         """Clean up the style value to make it comparable."""
         if self.skip_style_quotes:
@@ -348,18 +350,18 @@ class TagMatchConfig():
     def _is_required_rejected_matching(
         self,
         tags: Mapping[str, str],
-        required_sets: Sequence[TagMatcherType],
-        rejected_matchers: TagMatcherType,
+        required_sets: Sequence[MappingMatcher],
+        rejected_matchers: MappingMatcher,
     ) -> bool:
         """Match styles or tags based on required/rejected semantics."""
-        if self._match_any(tags, rejected_matchers):
+        if rejected_matchers.any(tags):
             return False
 
         if not required_sets:
             return True
 
         for style_matcher in required_sets:
-            if self._match_all(tags, style_matcher):
+            if style_matcher.all(tags):
                 return True
 
         return False

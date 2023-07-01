@@ -15,15 +15,17 @@ class TagMatchConfigTest(unittest.TestCase):
         element = doc_struct.Element(style={'X': '\'blah\''})
         self.assertTrue(
             tags_basic.TagMatchConfig(
-                required_style_sets=[{
-                    'X': re.compile('^blah$'),
-                }], skip_style_quotes=False).is_matching(element))
+                required_style_sets=[
+                    tags_basic.MappingMatcher(X=re.compile('^blah$')),
+                ],
+                skip_style_quotes=False).is_matching(element))
 
         self.assertTrue(
             tags_basic.TagMatchConfig(
-                required_style_sets=[{
-                    'X': re.compile('^\'blah\'$'),
-                }], skip_style_quotes=True).is_matching(element))
+                required_style_sets=[
+                    tags_basic.MappingMatcher(X=re.compile('^\'blah\'$'))
+                ],
+                skip_style_quotes=True).is_matching(element))
 
 
 doc = doc_struct.Document(
@@ -115,9 +117,9 @@ class StyleTagTest(unittest.TestCase):
         transform = tags_basic.TaggingTransform(
             config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t1')),
-                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
-                    'a': re.compile('x')
-                }],),
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[
+                    tags_basic.MappingMatcher(a=re.compile('x'))
+                ],),
             ))
         self.assertEqual(doc_struct.as_dict(expected),
                          doc_struct.as_dict(transform(doc)))
@@ -176,21 +178,21 @@ class StyleTagTest(unittest.TestCase):
         transform1 = tags_basic.TaggingTransform(
             config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t2')),
-                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
-                    'a': re.compile('x')
-                }],)))
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[
+                    tags_basic.MappingMatcher(a=re.compile('x'))
+                ],)))
         transform2 = tags_basic.TaggingTransform(
             config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t3')),
-                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
-                    'a': re.compile('y')
-                }],)))
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[
+                    tags_basic.MappingMatcher(a=re.compile('y'))
+                ],)))
         transform3 = tags_basic.TaggingTransform(
             config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t4')),
-                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
-                    'b': re.compile('z')
-                }],)))
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[
+                    tags_basic.MappingMatcher(b=re.compile('z'))
+                ],)))
         self.assertEqual(
             doc_struct.as_dict(expected),
             doc_struct.as_dict(transform3(transform2(transform1(doc)))))
@@ -242,9 +244,9 @@ class StyleTagTest(unittest.TestCase):
             config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t5')),
                 match_element=tags_basic.TagMatchConfig(
-                    required_style_sets=[{
-                        'a': re.compile('x')
-                    }],
+                    required_style_sets=[
+                        tags_basic.MappingMatcher(a=re.compile('x'))
+                    ],
                     element_types=[
                         doc_struct.TextRun,
                         doc_struct.BulletItem,
@@ -300,10 +302,11 @@ class StyleTagTest(unittest.TestCase):
             config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t6')),
                 match_element=tags_basic.TagMatchConfig(
-                    required_style_sets=[{
-                        'a': re.compile('x')
-                    }],
-                    rejected_styles={'b': re.compile('z')})))
+                    required_style_sets=[
+                        tags_basic.MappingMatcher(a=re.compile('x'))
+                    ],
+                    rejected_styles=tags_basic.MappingMatcher(
+                        b=re.compile('z')))))
         self.assertEqual(doc_struct.as_dict(expected),
                          doc_struct.as_dict(transform(doc)))
 
@@ -355,9 +358,11 @@ class StyleTagTest(unittest.TestCase):
         transform = tags_basic.TaggingTransform(
             config=tags_basic.ElementTaggingConfig(
                 tags=tags_basic.TagUpdateConfig(add=doc_struct.tags_for('t7')),
-                match_element=tags_basic.TagMatchConfig(required_style_sets=[{
-                    'a': re.compile('x'),
-                    'b': re.compile('z')
-                }])))
+                match_element=tags_basic.TagMatchConfig(required_style_sets=[
+                    tags_basic.MappingMatcher(
+                        a=re.compile('x'),
+                        b=re.compile('z'),
+                    )
+                ])))
         self.assertEqual(doc_struct.as_dict(expected),
                          doc_struct.as_dict(transform(doc)))

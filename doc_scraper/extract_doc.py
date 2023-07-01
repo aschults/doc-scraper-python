@@ -20,6 +20,9 @@ from doc_scraper.pipeline import pipeline
 CONFIG_FILE_FLAG: flags.FlagHolder[str] = flags.DEFINE_string(  # type:ignore
     'config', None, 'Config YAML file')
 
+TEST_CONFIG_FLAG: flags.FlagHolder[bool] = flags.DEFINE_bool(  # type:ignore
+    'test_config', False, 'Only test config, don\'t execute it.')
+
 DUMP_SAMPLE_FLAG: flags.FlagHolder[bool] = flags.DEFINE_bool(  # type:ignore
     'config_sample', False, 'Dump sample config')
 
@@ -40,6 +43,9 @@ def main(argv: Sequence[str]):
         app.usage(detailed_error=CONFIG_MISSING_ERROR)  # type:ignore
     builder.set_commandline_args(*argv[1:])
     pipeline_instance = builder.from_file(CONFIG_FILE_FLAG.value)
+
+    if TEST_CONFIG_FLAG.value:
+        return
 
     pipeline_instance()
 

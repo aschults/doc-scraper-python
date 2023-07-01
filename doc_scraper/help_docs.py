@@ -92,6 +92,7 @@ class TextConvertible():
         if isinstance(value, str):
             if not value:
                 return ''
+            value = value.replace('\\', '\\\\')
             return f'"{value}"'
         if isinstance(value, dict):
             result = (self._dict_value_as_yaml(key, value2)
@@ -312,17 +313,17 @@ class PipelineHelp(TextConvertible):
         text: The actual help text.
         sources:
         transformations:
-        sinks: Help for each builder type.
+        outputs: Help for each builder type.
     """
 
     text: str
     sources: BuilderHelp
     transformations: BuilderHelp
-    sinks: BuilderHelp
+    outputs: BuilderHelp
 
     def as_yaml(self) -> str:
         """Convert to YAML."""
-        sections = ('sources', 'transformations', 'sinks')
+        sections = ('sources', 'transformations', 'outputs')
         section_comments = (
             'Load from various sources (some are aware of command line arg)',
             'Steps executed in order to modify the documents',
@@ -336,7 +337,7 @@ class PipelineHelp(TextConvertible):
 
         doc_list = [
             self._prefix_text_lines(item.as_yaml())
-            for item in (self.sources, self.transformations, self.sinks)
+            for item in (self.sources, self.transformations, self.outputs)
         ]
 
         field_docs = "\n\n".join(

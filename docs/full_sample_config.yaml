@@ -57,7 +57,7 @@ transformations:
             # If set to True, quotes in style values are removed.
             skip_style_quotes: True  # Default
             # The Python regex to match with element's text representation.
-            aggregated_text_regex: "some text\s+in doc"
+            aggregated_text_regex: "some text\\s+in doc"
             # List of expressions to interpolate and match.
             element_expressions:
             -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
@@ -100,7 +100,7 @@ transformations:
             # If set to True, quotes in style values are removed.
             skip_style_quotes: True  # Default
             # The Python regex to match with element's text representation.
-            aggregated_text_regex: "some text\s+in doc"
+            aggregated_text_regex: "some text\\s+in doc"
             # List of expressions to interpolate and match.
             element_expressions:
             -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
@@ -110,7 +110,7 @@ transformations:
         # List of regex-based replacements.
         substitutions:
         -   # The Python regex to match.
-            regex: "\s+"  # All spaces (including newline)
+            regex: "\\s+"  # All spaces (including newline)
             # The replacement text.
             substitute: " "  # Replace with one space
             # Additional operation to apply.
@@ -129,8 +129,8 @@ transformations:
         -   ".*font.*"
         # List for regexes. Matching keys in `style_rules are removed from SharedData.
         remove_style_rules_re:  # Remove all starting ".lst" or "ul."
-        -   "\.lst.*"
-        -   "ul\..*"
+        -   "\\.lst.*"
+        -   "ul\\..*"
       
     # Add tags to any element if they match the criteria.
     - kind: tag_matching
@@ -175,7 +175,7 @@ transformations:
             # If set to True, quotes in style values are removed.
             skip_style_quotes: True  # Default
             # The Python regex to match with element's text representation.
-            aggregated_text_regex: "some text\s+in doc"
+            aggregated_text_regex: "some text\\s+in doc"
             # List of expressions to interpolate and match.
             element_expressions:
             -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
@@ -219,7 +219,7 @@ transformations:
     
 
 # Places to write down the result
-sinks:
+outputs:
     # Write to a single file, with separators between.
     - kind: single_file
       # Configuration to write to a single file, concatenated.

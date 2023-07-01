@@ -27,6 +27,7 @@ import dacite
 
 from doc_scraper import help_docs
 from doc_scraper import doc_struct
+from doc_scraper.basic_transforms import tags_basic
 
 HelpDocArg = Optional[Union[str, help_docs.BuilderKindHelp]]
 
@@ -201,10 +202,15 @@ class GenericBuilder(Generic[_T]):
         """Create an instance."""
         self._registry: Dict[str, _BuilderData[_T]] = dict()
 
-        self.dacite_config = dacite.Config(type_hooks={
-            Type[object]: self._type_from_str,
-            re.Pattern: re.compile
-        })
+        self.dacite_config = dacite.Config(
+            type_hooks={
+                Type[object]:
+                    self._type_from_str,
+                re.Pattern:
+                    re.compile,
+                tags_basic.MappingMatcher:
+                    lambda data: tags_basic.MappingMatcher(**data)
+            })
 
         self.modules = [builtins, doc_struct]
         self._cmdline_args: Sequence[str] = []

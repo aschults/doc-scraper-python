@@ -137,7 +137,7 @@ class TestRegexReplacerTransform(unittest.TestCase):
         """Transform a simple text, marked by tag."""
         config = paragraph_element_basic.RegexReplacerConfig(
             match=tags_basic.TagMatchConfig(
-                required_tag_sets=[tags_basic.match_for('A')]),
+                required_tag_sets=[tags_basic.MappingMatcher.tags('A')]),
             substitutions=[
                 paragraph_element_basic.RegexReplaceRule(regex=re.compile('.'),
                                                          substitute='X'),
