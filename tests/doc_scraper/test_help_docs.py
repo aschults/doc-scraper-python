@@ -51,6 +51,18 @@ class SampleConfig2():
     )
 
 
+class SampleSToString():
+    """Sample class with specifit string conversion."""
+
+    def __init__(self, text: str) -> None:
+        """Create an instance."""
+        self.text = text
+
+    def __str__(self) -> str:
+        """Convert to string."""
+        return f"_{self.text}_"
+
+
 class TextConvertibleTest(unittest.TestCase):
     """Test the TextConvertible class."""
 
@@ -69,15 +81,15 @@ class TextConvertibleTest(unittest.TestCase):
         ),
         (
             'Simple regex',
-            re.compile('abc'),
+            SampleSToString('abc'),
             '',
-            'thekey: abc',
+            'thekey: _abc_',
         ),
         (
             'Simple regex with docstring',
-            re.compile('abc'),
+            SampleSToString('abc'),
             'docstring',
-            'thekey: abc  # docstring',
+            'thekey: _abc_  # docstring',
         ),
         (
             'Array of int',
@@ -251,8 +263,8 @@ class AsYamlTest(unittest.TestCase):
         kind: thename
         # text2
         config:
-          # c
-          a:
+            # c
+            a:
         '''
         self.assert_equal_without_indent(expected, doc.as_yaml())
 
@@ -265,14 +277,14 @@ class AsYamlTest(unittest.TestCase):
                     help_docs.ConfigFieldHelp('a', str, 'c', [('txt', 'VAL')])
                 ]))
         ])
-        spc = '  '
+        spc = '    '
         expected = f'''
         # thetext
-        - kind: thename
-          # text2
-          config:
-            # c
-            a: "VAL"  # txt
+        -   kind: thename
+            # text2
+            config:
+                # c
+                a: "VAL"  # txt
         {spc}
         '''
         self.assert_equal_without_indent(expected, doc.as_yaml())
@@ -288,7 +300,7 @@ class AsYamlTest(unittest.TestCase):
         doc = help_docs.PipelineHelp('sometext', builder_help, builder_help,
                                      builder_help)
         spc4 = '    '
-        spc6 = '      '
+        spc8 = '        '
         expected = f'''
         #
         # sometext
@@ -296,25 +308,25 @@ class AsYamlTest(unittest.TestCase):
         # Load from various sources (some are aware of command line arg)
         sources:
             # thetext
-            - kind: thename
-              text2config:
-        {spc6}
+            -   kind: thename
+                text2config:
+        {spc8}
         {spc4}
 
         # Steps executed in order to modify the documents
         transformations:
             # thetext
-            - kind: thename
-              text2config:
-        {spc6}
+            -   kind: thename
+                text2config:
+        {spc8}
         {spc4}
 
         # Places to write down the result
         outputs:
             # thetext
-            - kind: thename
-              text2config:
-        {spc6}
+            -   kind: thename
+                text2config:
+        {spc8}
         {spc4}'''
         self.assert_equal_without_indent(expected, doc.as_yaml())
 

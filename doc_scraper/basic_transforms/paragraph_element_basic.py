@@ -2,7 +2,6 @@
 
 from typing import (Optional, List)
 import dataclasses
-import re
 
 from doc_scraper import doc_struct
 from doc_scraper import doc_transform
@@ -15,7 +14,7 @@ from doc_scraper.basic_transforms import tags_basic
 class RegexReplaceRule():
     """Single regex with substitution."""
 
-    regex: re.Pattern[str] = dataclasses.field(
+    regex: tags_basic.StringMatcher = dataclasses.field(
         metadata={
             'help_text': 'The Python regex to match.',
             'help_samples': [('All spaces (including newline)', r'\s+')]

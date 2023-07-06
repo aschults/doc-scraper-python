@@ -3,6 +3,7 @@
 import unittest
 
 from doc_scraper.basic_transforms import elements_basics
+from doc_scraper.basic_transforms import tags_basic
 from doc_scraper import doc_struct
 
 
@@ -12,9 +13,9 @@ class TestStripElements(unittest.TestCase):
     def test_simple_transform(self):
         """Test a simple transformation."""
         transform = elements_basics.StripElementsTransform(
-            remove_attrs_re=['_.*'],
-            remove_styles_re=['-.*', '0.*'],
-            remove_style_rules_re=['x.*'])
+            remove_attrs_re=tags_basic.StringMatcher.make_list('_.*'),
+            remove_styles_re=tags_basic.StringMatcher.make_list('-.*', '0.*'),
+            remove_style_rules_re=tags_basic.StringMatcher.make_list('x.*'))
 
         data = doc_struct.SharedData(
             attrs={

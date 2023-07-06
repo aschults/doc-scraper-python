@@ -22,13 +22,24 @@ class DocDownloader():
     developer_key: Optional[str] = None
 
     def __init__(self,
-                 creds: Optional[auth_credentials.Credentials] = None) -> None:
+                 username: Optional[str] = None,
+                 creds_store: Optional[_auth.CredentialsStore] = None) -> None:
         """Create an instance.
 
         Args:
-            creds: Credentials to use when accessing the doc.
+            username: Username associated with the credentials to use.
+            creds_store: Credentials manager to use when accessing docs.
         """
-        self._creds = creds or _auth.get_credentials_from_webserver_auth()
+        self._username = username
+
+        if creds_store is None:
+            creds_store = _auth.CredentialsStore()
+            creds_store.add_available_credentials()
+        self._creds_manager = creds_store
+
+    @property
+    def _creds(self) -> auth_credentials.Credentials:
+        return self._creds_manager.from_username(self._username)
 
     def get_json(self, doc_id: str) -> Any:
         """Get the doc as native JSON."""

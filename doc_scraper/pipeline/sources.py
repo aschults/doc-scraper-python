@@ -48,25 +48,28 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
     def __init__(
         self,
         doc_ids: Optional[List[str]] = None,
-        downloader_or_creds: doc_loader.DocDownloader |
-        doc_loader.Credentials | None = None
+        username: Optional[str] = None,
+        downloader_or_creds_store: doc_loader.DocDownloader |
+        doc_loader.CredentialsStore | None = None
     ) -> None:
         """Create an instance.
 
         Args:
             doc_ids: IDs of docs to fetch. Default: []. The list can be
                 extended using set_commandline_args().
-            downloader_or_creds: Pass down DocDownloader itself, or
+            username: Username associated with the credentials to use.
+                Use None(default) for default credentials.
+            downloader_or_creds_store: Pass down DocDownloader itself, or
                 credentials required to set up one.
         """
         self._doc_ids: List[str] = doc_ids or []
-        if isinstance(downloader_or_creds, doc_loader.DocDownloader):
-            self._doc_downloader = downloader_or_creds
-        elif downloader_or_creds is not None:
+        if isinstance(downloader_or_creds_store, doc_loader.DocDownloader):
+            self._doc_downloader = downloader_or_creds_store
+        elif downloader_or_creds_store is not None:
             self._doc_downloader = doc_loader.DocDownloader(
-                creds=downloader_or_creds)
+                username=username, creds_store=downloader_or_creds_store)
         else:
-            self._doc_downloader = doc_loader.DocDownloader()
+            self._doc_downloader = doc_loader.DocDownloader(username=username)
 
     def set_commandline_args(self, *args: str, **kwargs: str) -> None:
         """Add doc ids specified on command-line.
@@ -101,10 +104,9 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
         """
         if config is None:
             config = DocLoaderConfig()
-        creds = creds_store.from_username(config.username)
-
         return DocLoader(doc_ids=list(config.doc_ids),
-                         downloader_or_creds=creds)
+                         username=config.username,
+                         downloader_or_creds_store=creds_store)
 
 
 @dataclasses.dataclass(kw_only=True)

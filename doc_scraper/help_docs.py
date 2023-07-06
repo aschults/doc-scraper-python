@@ -16,7 +16,6 @@ from typing import (
     List,
     cast,
 )
-import re
 
 # Convenience type to allow adding samples via tuple.
 ConfigFieldSampleType = Union[Tuple[str, Any], Any]
@@ -107,8 +106,6 @@ class TextConvertible():
             result = ('-' + value2[1:] for value2 in result)
             result_str = '\n'.join(result)
             return result_str
-        if isinstance(value, re.Pattern):
-            return cast(re.Pattern[str], value).pattern
         if isinstance(value, RawSample):
             return value.raw
         if isinstance(value, ClassBasedSample):
@@ -271,7 +268,7 @@ class BuilderKindHelp(TextConvertible):
 
         if config_doc_str:
             config_doc_str = self._prefix_text_lines(config_doc_str,
-                                                     '  ') + '\n'
+                                                     '    ') + '\n'
             config_comment_str = self._prefix_text_lines(
                 config_comment_str, '# ') + '\n'
 
@@ -298,7 +295,7 @@ class BuilderHelp(TextConvertible):
             if kind.text:
                 comment = self._prefix_text_lines(kind.text, '# ') + '\n'
 
-            inner_config = self._prefix_text_lines(kind.as_yaml(), "  ")
+            inner_config = self._prefix_text_lines(kind.as_yaml(), "    ")
             inner_config = '-' + inner_config[1:]
             result += f'{comment}{inner_config}\n'
 

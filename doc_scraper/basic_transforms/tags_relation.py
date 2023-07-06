@@ -528,6 +528,7 @@ class RelationalMatchingConfig():
         default_factory=PositionMatchConfig,
         metadata={
             'help_text': 'Criteria to match elements for tagging.',
+            'help_samples': [help_docs.ClassBasedSample(PositionMatchConfig)],
         })
 
     match_ancestor_list: Sequence[PositionMatchConfig] = dataclasses.field(
@@ -535,6 +536,9 @@ class RelationalMatchingConfig():
         metadata={
             'help_text':
                 'List of ordered criteria to match along the ancestors',
+            'help_samples': [[
+                help_docs.ClassBasedSample(tags_basic.TagMatchConfig)
+            ]],
         })
 
     match_descendent: Optional[tags_basic.TagMatchConfig] = dataclasses.field(
@@ -542,6 +546,9 @@ class RelationalMatchingConfig():
         metadata={
             'help_text':
                 'Criteria to match any descendent of the current element.',
+            'help_samples': [
+                help_docs.ClassBasedSample(tags_basic.TagMatchConfig)
+            ],
         })
 
     def _is_ancestor_matching(self,
@@ -743,10 +750,12 @@ class RelativeTaggingConfig(
         metadata={
             'help_text':
                 'Variables to provide for the interpolation of tags.',
-            'help_samples': [[
-                help_docs.ClassBasedSample(AncestorPathEvaluator),
-                help_docs.ClassBasedSample(RelativePositionEvaluator),
-            ]],
+            'help_samples': [{
+                'ancestor_path':
+                    help_docs.ClassBasedSample(AncestorPathEvaluator),
+                'related_element':
+                    help_docs.ClassBasedSample(RelativePositionEvaluator),
+            }],
         })
 
     def get_variables(

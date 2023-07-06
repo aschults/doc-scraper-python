@@ -17,6 +17,7 @@ from typing import (
 import dataclasses
 import re
 from abc import abstractmethod
+import sys
 
 from doc_scraper import doc_struct
 from doc_scraper import help_docs
@@ -130,16 +131,57 @@ class ElementFilterConverter(
         return self._filter(element, *elements)
 
 
+class StringMatcher():
+    """Wrapper around re.Pattern to support Dacite conversion."""
+
+    @classmethod
+    def make_list(cls, *args: str) -> 'Sequence[StringMatcher]':
+        """Convert an entire list of strings to StringMatcher."""
+        return [StringMatcher(arg) for arg in args]
+
+    def __init__(self, regex_or_string: str | re.Pattern[str]) -> None:
+        """Create an instance."""
+        if isinstance(regex_or_string, str):
+            regex_or_string = re.compile(regex_or_string)
+
+        self._regex: re.Pattern[str] = regex_or_string
+
+    def match(self,
+              string: str,
+              pos: int = 0,
+              endpos: int = sys.maxsize) -> re.Match[str] | None:
+        """Proxy re.Pattern's match method'."""
+        return self._regex.match(string)
+
+    def sub(self,
+            repl: str | Callable[[re.Match[str]], str],
+            string: str,
+            count: int = 0) -> str:
+        """Proxy re.Pattern's sub method'."""
+        return self._regex.sub(repl, string, count)
+
+    def fullmatch(self,
+                  string: str,
+                  pos: int = 0,
+                  endpos: int = sys.maxsize) -> re.Match[str] | None:
+        """Proxy re.Pattern's fullmatch method'."""
+        return self._regex.fullmatch(string, pos, endpos)
+
+    def __str__(self) -> str:
+        """Convert to string."""
+        return self._regex.pattern
+
+
 class MappingMatcher():
     """Match a dict of tags against a dict of tags with regexes."""
 
-    def __init__(self, **mapping: re.Pattern[str]) -> None:
+    def __init__(self, **mapping: StringMatcher) -> None:
         """Create an instance."""
         self._mapping = mapping
 
     @classmethod
     def tags(
-        cls, *tags: str, pattern: re.Pattern[str] = re.compile('.+')
+        cls, *tags: str, pattern: StringMatcher = StringMatcher('.+')
     ) -> 'MappingMatcher':
         """Create matcher for multiple tags with the same regex."""
         return MappingMatcher(**{item: pattern for item in tags})
@@ -193,10 +235,10 @@ class ElementExpressionMatchConfig():
             ]
         })
 
-    regex_match: re.Pattern[str] = dataclasses.field(
+    regex_match: StringMatcher = dataclasses.field(
         metadata={
             'help_docs': 'The regex against which to match the expression',
-            'help_samples': [re.compile('text---http.*')],
+            'help_samples': [StringMatcher('text---http.*')],
         })
 
     ignore_key_errors: bool = dataclasses.field(
@@ -230,6 +272,20 @@ class ElementExpressionMatchConfig():
         return True
 
 
+class TypeMatcher():
+    """Match element types."""
+
+    def __init__(self, *types: Type[doc_struct.Element]) -> None:
+        """Construct an instance."""
+        self._types = types
+
+    def is_matching(self, obj: Any) -> bool:
+        """Test if `obj` is a matching instance."""
+        if not self._types:
+            return True
+        return isinstance(obj, tuple(self._types))
+
+
 @dataclasses.dataclass(kw_only=True)
 class TagMatchConfig():
     """Configuration for matching by tag."""
@@ -238,8 +294,8 @@ class TagMatchConfig():
         """Add the text converter in post init."""
         self._text_converter = doc_struct.RawTextConverter()
 
-    element_types: Sequence[Type[doc_struct.Element]] = dataclasses.field(
-        default_factory=lambda: [doc_struct.Element],
+    element_types: TypeMatcher = dataclasses.field(
+        default_factory=TypeMatcher,
         metadata={
             'help_docs':
                 'The element types to be tagged',
@@ -257,10 +313,10 @@ class TagMatchConfig():
                 'List of list of tags, all required for the ' +
                 'match to happen.',
             'help_samples': [[{
-                'A': re.compile('.*'),
-                'B': re.compile(''),
+                'A': StringMatcher('.*'),
+                'B': StringMatcher(''),
             }, {
-                'C': re.compile('.*')
+                'C': StringMatcher('.*')
             }]],
         })
     rejected_tags: MappingMatcher = dataclasses.field(
@@ -268,8 +324,9 @@ class TagMatchConfig():
         metadata={
             'help_text':
                 'Tags that stop any match if present.',
-            'help_samples': [('No Elements tagged with X will be matched.',
-                              ['X'])]
+            'help_samples': [('No Elements tagged with X will be matched.', {
+                'X': StringMatcher('.+')
+            })]
         })
 
     required_style_sets: Sequence[MappingMatcher] = dataclasses.field(
@@ -304,8 +361,8 @@ class TagMatchConfig():
             'help_text': 'If set to True, quotes in style values are removed.'
         })
 
-    aggregated_text_regex: Optional[re.Pattern[str]] = dataclasses.field(
-        default=None,
+    aggregated_text_regex: StringMatcher = dataclasses.field(
+        default=StringMatcher('.*'),
         metadata={
             'help_text':
                 'The Python regex to match with element\'s ' +
@@ -372,7 +429,7 @@ class TagMatchConfig():
             element: doc_struct.Element,
             path: Optional[Sequence[doc_struct.Element]] = None) -> bool:
         """Check if an element matches."""
-        if not isinstance(element, tuple(self.element_types)):
+        if not self.element_types.is_matching(element):
             return False
 
         if not self._is_required_rejected_matching(

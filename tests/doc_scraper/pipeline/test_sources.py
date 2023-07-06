@@ -109,7 +109,7 @@ class TestSources(fake_filesystem_unittest.TestCase):
             _create_dummy_doc(tag) for tag in ('t1', 't2')
         ]
         loader = sources.DocLoader(doc_ids=['id1'],
-                                   downloader_or_creds=mock_downloader)
+                                   downloader_or_creds_store=mock_downloader)
         loader.set_commandline_args('id2')
 
         result = [_get_doc_tag(doc) for doc in loader]
@@ -129,7 +129,8 @@ class TestSources(fake_filesystem_unittest.TestCase):
                                              username='someone')
             sources.DocLoader.from_config(config, creds_store)
 
-            getter_patch.assert_called_once_with(creds=mock_creds)
+            getter_patch.assert_called_once_with(username='someone',
+                                                 creds_store=creds_store)
 
     def test_doc_downloader_by_config_default_user(self):
         """Test parsing doc usind downloader."""
@@ -143,4 +144,5 @@ class TestSources(fake_filesystem_unittest.TestCase):
             config = sources.DocLoaderConfig(doc_ids=['id1'])
             sources.DocLoader.from_config(config, creds_store)
 
-            getter_patch.assert_called_once_with(creds=mock_creds)
+            getter_patch.assert_called_once_with(username='',
+                                                 creds_store=creds_store)

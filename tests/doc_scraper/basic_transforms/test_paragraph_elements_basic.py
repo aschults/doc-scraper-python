@@ -1,6 +1,5 @@
 """Test the basic transformations for all elements."""
 
-import re
 import unittest
 
 from doc_scraper import doc_struct
@@ -15,7 +14,7 @@ class TestRegexReplace(unittest.TestCase):
         """Test simple replacement."""
         replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
             paragraph_element_basic.RegexReplaceRule(
-                regex=re.compile('x'),
+                regex=tags_basic.StringMatcher('x'),
                 substitute='y',
             )
         ])
@@ -26,7 +25,7 @@ class TestRegexReplace(unittest.TestCase):
         """Test non-matching replacement."""
         replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
             paragraph_element_basic.RegexReplaceRule(
-                regex=re.compile('x'),
+                regex=tags_basic.StringMatcher('x'),
                 substitute='y',
             )
         ])
@@ -37,11 +36,11 @@ class TestRegexReplace(unittest.TestCase):
         """Test chained replacements."""
         replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
             paragraph_element_basic.RegexReplaceRule(
-                regex=re.compile('x'),
+                regex=tags_basic.StringMatcher('x'),
                 substitute='y',
             ),
             paragraph_element_basic.RegexReplaceRule(
-                regex=re.compile('ay'),
+                regex=tags_basic.StringMatcher('ay'),
                 substitute='U',
             )
         ])
@@ -58,7 +57,7 @@ class TestRegexReplace(unittest.TestCase):
             replacer = paragraph_element_basic.RegexReplacerConfig(
                 substitutions=[
                     paragraph_element_basic.RegexReplaceRule(
-                        regex=re.compile('^(..)'),
+                        regex=tags_basic.StringMatcher('^(..)'),
                         substitute=r'_\1_',
                         operation=operation)
                 ])
@@ -67,9 +66,10 @@ class TestRegexReplace(unittest.TestCase):
     def test_replace_bad_operation(self):
         """Test bad operations."""
         replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
-            paragraph_element_basic.RegexReplaceRule(regex=re.compile('^(..)'),
-                                                     substitute=r'_\1_',
-                                                     operation='bad_value')
+            paragraph_element_basic.RegexReplaceRule(
+                regex=tags_basic.StringMatcher('^(..)'),
+                substitute=r'_\1_',
+                operation='bad_value')
         ])
         self.assertRaisesRegex(ValueError, 'Unknown substitution',
                                lambda: replacer.transform_text(''))
@@ -139,8 +139,8 @@ class TestRegexReplacerTransform(unittest.TestCase):
             match=tags_basic.TagMatchConfig(
                 required_tag_sets=[tags_basic.MappingMatcher.tags('A')]),
             substitutions=[
-                paragraph_element_basic.RegexReplaceRule(regex=re.compile('.'),
-                                                         substitute='X'),
+                paragraph_element_basic.RegexReplaceRule(
+                    regex=tags_basic.StringMatcher('.'), substitute='X'),
             ])
 
         data = doc_struct.Paragraph(elements=[

@@ -12,7 +12,6 @@ from typing import (
 )
 import unittest
 import dataclasses
-import re
 
 from parameterized import parameterized  # type:ignore
 
@@ -122,7 +121,7 @@ def _tag_type_descendent(
 ) -> tags_relation.RelativeTaggingConfig:
     return tags_relation.RelativeTaggingConfig(
         match_descendent=tags_basic.TagMatchConfig(
-            element_types=[element_type]),
+            element_types=tags_basic.TypeMatcher(element_type)),
         tags=tags_basic.TagUpdateConfig(add={'x': '1'}),
     )
 
@@ -134,7 +133,8 @@ def _tag_type_ancestor(
 ) -> tags_relation.RelativeTaggingConfig:
     return tags_relation.RelativeTaggingConfig(
         match_ancestor_list=[
-            tags_relation.PositionMatchConfig(element_types=[element])
+            tags_relation.PositionMatchConfig(
+                element_types=tags_basic.TypeMatcher(element))
             for element in element_type
         ],
         match_element=position,
@@ -161,9 +161,10 @@ class TestRelationMatching(unittest.TestCase):
         (
             'Single match root indirect',
             DOUBLE_X_DOUBLE_TREE,
-            dataclasses.replace(_tag_type_descendent(doc_struct.Chip),
-                                match_element=tags_basic.TagMatchConfig(
-                                    element_types=[doc_struct.Section])),
+            dataclasses.replace(
+                _tag_type_descendent(doc_struct.Chip),
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=tags_basic.TypeMatcher(doc_struct.Section))),
             {'1'},
         ),
         (
@@ -189,9 +190,9 @@ class TestRelationMatching(unittest.TestCase):
             DOUBLE_X_DOUBLE_TREE,
             dataclasses.replace(
                 _tag_type_descendent(doc_struct.ParagraphElement),
-                match_element=tags_basic.TagMatchConfig(element_types=[
-                    doc_struct.BulletItem, doc_struct.Paragraph
-                ])),
+                match_element=tags_basic.TagMatchConfig(
+                    element_types=tags_basic.TypeMatcher(
+                        doc_struct.BulletItem, doc_struct.Paragraph))),
             {'2a', '2b'},
         ),
     ])
@@ -734,14 +735,14 @@ class TestRelativeTaggingTransform(unittest.TestCase):
     @parameterized.expand([  # type: ignore
         (
             'no var',
-            re.compile('33'),
+            '33',
             '_{0.tags[id]}_',
             {},
             [('33', '_33_')],
         ),
         (
             'no move var',
-            re.compile('43'),
+            '43',
             '_{v.tags[id]}_',
             {
                 'v':
@@ -752,7 +753,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
         ),
         (
             'tl move var',
-            re.compile('43'),
+            '43',
             '_{v.tags[id]}_',
             {
                 'v':
@@ -764,7 +765,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
         ),
         (
             'move to none var',
-            re.compile('43'),
+            '43',
             '_{v.tags[id]}_',
             {
                 'v':
@@ -779,7 +780,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
         ),
         (
             'multiple var',
-            re.compile('33'),
+            '33',
             '_{v1.tags[id]}_{v2.tags[id]}_',
             {
                 'v1':
@@ -795,7 +796,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
         ),
         (
             'ancestor path var',
-            re.compile('33'),
+            '33',
             '_{v}_',
             {
                 'v':
@@ -806,7 +807,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
         ),
         (
             'ancestor path var empty',
-            re.compile('33'),
+            '33',
             '_{v}_',
             {
                 'v':
@@ -820,15 +821,16 @@ class TestRelativeTaggingTransform(unittest.TestCase):
     def test_transform(
         self,
         name: str,
-        pattern: re.Pattern[str],
+        pattern: str,
         template: str,
         variables: Mapping[str, Any],
         expected: Sequence[Tuple[str, str]],
     ):
         """Execute the transformation for various configs."""
         config = tags_relation.RelativeTaggingConfig(
-            match_element=tags_relation.PositionMatchConfig(
-                required_tag_sets=[tags_basic.MappingMatcher(id=pattern)]),
+            match_element=tags_relation.PositionMatchConfig(required_tag_sets=[
+                tags_basic.MappingMatcher(id=tags_basic.StringMatcher(pattern))
+            ]),
             tags=tags_basic.TagUpdateConfig(
                 add={'x': template},
                 ignore_errors=True,

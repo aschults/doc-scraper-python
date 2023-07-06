@@ -9,6 +9,7 @@ from google.oauth2 import credentials  # type: ignore
 from doc_scraper import doc_struct
 
 from doc_scraper.doc_loader import _google_docs  # type: ignore
+from doc_scraper.doc_loader import _auth  # type: ignore
 
 HTML_DOC = '''
 <html>
@@ -47,10 +48,12 @@ class TestDocDownloader(unittest.TestCase):
         self.mock_build.return_value = self.mock_service
 
         self.mock_creds = mock.Mock(spec=credentials.Credentials)
+        self.creds_store = _auth.CredentialsStore()
+        self.creds_store.add_credentials(self.mock_creds, make_default=True)
 
     def test_html_download(self):
         """Test a successful download."""
-        downloader = _google_docs.DocDownloader(creds=self.mock_creds)
+        downloader = _google_docs.DocDownloader(creds_store=self.creds_store)
 
         result = downloader.get_from_html('id1')
         self.assertEqual('__content__', _get_doc_tag(result))
@@ -59,7 +62,7 @@ class TestDocDownloader(unittest.TestCase):
         """Test a successful download of an empty doc."""
         self.mock_service.files().export_media().execute.return_value = ''
 
-        downloader = _google_docs.DocDownloader(creds=self.mock_creds)
+        downloader = _google_docs.DocDownloader(creds_store=self.creds_store)
 
         self.assertRaisesRegex(ValueError, 'No HTML document root found',
                                lambda: downloader.get_from_html('id1'))
@@ -69,7 +72,7 @@ class TestDocDownloader(unittest.TestCase):
         self.mock_service.files().export_media(
         ).execute.side_effect = Exception('expected')
 
-        downloader = _google_docs.DocDownloader(creds=self.mock_creds)
+        downloader = _google_docs.DocDownloader(creds_store=self.creds_store)
 
         self.assertRaisesRegex(Exception, 'expected',
                                lambda: downloader.get_from_html('id1'))
@@ -79,7 +82,17 @@ class TestDocDownloader(unittest.TestCase):
         self.mock_service.files().export_media(
         ).execute.return_value = BAD_HTML
 
-        downloader = _google_docs.DocDownloader(creds=self.mock_creds)
+        downloader = _google_docs.DocDownloader(creds_store=self.creds_store)
 
         self.assertRaisesRegex(ValueError, '.*balanced.*',
                                lambda: downloader.get_from_html('id1'))
+
+    def test_delayed_cred_use(self):
+        """Test a successful download."""
+        downloader = _google_docs.DocDownloader(
+            username='whoever@wherever.com', creds_store=self.creds_store)
+
+        self.creds_store.add_credentials(self.mock_creds,
+                                         'whoever@wherever.com')
+        result = downloader.get_from_html('id1')
+        self.assertEqual('__content__', _get_doc_tag(result))

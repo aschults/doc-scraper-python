@@ -209,7 +209,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'matching relaxed match',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    element_types=[doc_struct.ParagraphElement]),),
+                    element_types=tags_basic.TypeMatcher(
+                        doc_struct.ParagraphElement)),),
             doc_struct.TextRun(text='a'),
             doc_struct.Chip(text='b'),
             'ab',
@@ -218,7 +219,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'matching relaxed match',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    element_types=[doc_struct.ParagraphElement]),),
+                    element_types=tags_basic.TypeMatcher(
+                        doc_struct.ParagraphElement)),),
             doc_struct.Link(text='a', url='x'),
             doc_struct.Chip(text='b', url='x'),
             'ab',
@@ -228,7 +230,8 @@ class TestTagMergePolicy(unittest.TestCase):
             paragraph_basic.TagMergeConfig(
                 merge_as_text_run=True,
                 match_element=tags_basic.TagMatchConfig(
-                    element_types=[doc_struct.ParagraphElement]),
+                    element_types=tags_basic.TypeMatcher(
+                        doc_struct.ParagraphElement)),
             ),
             doc_struct.Link(text='a', url='x'),
             doc_struct.Chip(text='b', url='x'),
@@ -238,7 +241,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'matching text line',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    element_types=[doc_struct.ParagraphElement]),),
+                    element_types=tags_basic.TypeMatcher(
+                        doc_struct.ParagraphElement)),),
             doc_struct.TextLine(elements=[doc_struct.TextRun(text='a')]),
             doc_struct.TextLine(elements=[doc_struct.Chip(text='b')]),
             'ab',
@@ -337,7 +341,7 @@ class TestTagMergePolicy(unittest.TestCase):
             'Non-matching types',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    element_types=[doc_struct.Chip])),
+                    element_types=tags_basic.TypeMatcher(doc_struct.Chip))),
             doc_struct.TextRun(text='a'),
             doc_struct.TextRun(text='b'),
         ),
@@ -345,7 +349,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'Non-matching second type',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    element_types=[doc_struct.TextRun]),),
+                    element_types=tags_basic.TypeMatcher(
+                        doc_struct.TextRun)),),
             doc_struct.TextRun(text='a'),
             doc_struct.Chip(text='b'),
         ),
@@ -353,7 +358,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'Non-matching first type',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    element_types=[doc_struct.TextRun]),),
+                    element_types=tags_basic.TypeMatcher(
+                        doc_struct.TextRun)),),
             doc_struct.Chip(text='a'),
             doc_struct.TextRun(text='b'),
         ),
@@ -361,7 +367,8 @@ class TestTagMergePolicy(unittest.TestCase):
             'Non-matching relaxed match different URLs',
             paragraph_basic.TagMergeConfig(
                 match_element=tags_basic.TagMatchConfig(
-                    element_types=[doc_struct.ParagraphElement]),),
+                    element_types=tags_basic.TypeMatcher(
+                        doc_struct.ParagraphElement)),),
             doc_struct.Link(text='a', url='x'),
             doc_struct.Chip(text='b', url='y'),
         ),

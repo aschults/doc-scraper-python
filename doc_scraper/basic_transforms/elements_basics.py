@@ -1,10 +1,10 @@
 """Transformations applicable to all elements."""
 from typing import (Dict, Optional, Sequence, Any, Mapping, TypeVar)
 import dataclasses
-import re
 
 from doc_scraper import doc_struct
 from doc_scraper import doc_transform
+from doc_scraper.basic_transforms import tags_basic
 
 _V = TypeVar('_V')
 
@@ -13,31 +13,34 @@ _V = TypeVar('_V')
 class StripElementsConfig():
     """Configuration for removing unwanted attributes."""
 
-    remove_attrs_re: Optional[Sequence[str]] = dataclasses.field(
-        default=None,
-        metadata={
-            'help_text':
-                'List for regexes. Matching keys in `attribs` are removed.',
-            'help_samples': [('Remove all starting with _ or X_',
-                              ['_.*', 'X_.*'])]
-        })
-    remove_styles_re: Optional[Sequence[str]] = dataclasses.field(
-        default=None,
-        metadata={
-            'help_text':
-                'List for regexes. Matching keys in `styles` are removed.',
-            'help_samples': [('Remove all styles with "font" in the key',
-                              ['.*font.*'])]
-        })
-    remove_style_rules_re: Optional[Sequence[str]] = dataclasses.field(
-        default=None,
-        metadata={
-            'help_text':
-                'List for regexes. Matching keys in `style_rules ' +
-                'are removed from SharedData.',
-            'help_samples': [('Remove all starting ".lst" or "ul."',
-                              [r'\.lst.*', r'ul\..*'])]
-        })
+    remove_attrs_re: Optional[Sequence[
+        tags_basic.StringMatcher]] = dataclasses.field(
+            default=None,
+            metadata={
+                'help_text':
+                    'List for regexes. Matching keys in `attribs` are removed.',
+                'help_samples': [('Remove all starting with _ or X_',
+                                  ['_.*', 'X_.*'])]
+            })
+    remove_styles_re: Optional[Sequence[
+        tags_basic.StringMatcher]] = dataclasses.field(
+            default=None,
+            metadata={
+                'help_text':
+                    'List for regexes. Matching keys in `styles` are removed.',
+                'help_samples': [('Remove all styles with "font" in the key',
+                                  ['.*font.*'])]
+            })
+    remove_style_rules_re: Optional[Sequence[
+        tags_basic.StringMatcher]] = dataclasses.field(
+            default=None,
+            metadata={
+                'help_text':
+                    'List for regexes. Matching keys in `style_rules ' +
+                    'are removed from SharedData.',
+                'help_samples': [('Remove all starting ".lst" or "ul."',
+                                  [r'\.lst.*', r'ul\..*'])]
+            })
 
 
 class StripElementsTransform(doc_transform.Transformation):
@@ -54,9 +57,10 @@ class StripElementsTransform(doc_transform.Transformation):
     def __init__(
         self,
         context: Optional[doc_transform.TransformationContext] = None,
-        remove_attrs_re: Optional[Sequence[str]] = None,
-        remove_styles_re: Optional[Sequence[str]] = None,
-        remove_style_rules_re: Optional[Sequence[str]] = None,
+        remove_attrs_re: Optional[Sequence[tags_basic.StringMatcher]] = None,
+        remove_styles_re: Optional[Sequence[tags_basic.StringMatcher]] = None,
+        remove_style_rules_re: Optional[Sequence[
+            tags_basic.StringMatcher]] = None,
     ) -> None:
         """Create an instance.
 
@@ -76,25 +80,20 @@ class StripElementsTransform(doc_transform.Transformation):
         """
         super().__init__(context)
         if remove_attrs_re is None:
-            remove_attrs_re = ['style']
+            remove_attrs_re = [tags_basic.StringMatcher('style')]
         if remove_styles_re is None:
             remove_styles_re = [
-                'padding.*', 'font-family', 'line-height', 'orphans',
-                'page-break-after', 'widows', 'vertical-align', 'margin.*',
-                'text-align'
+                tags_basic.StringMatcher(style)
+                for style in ('padding.*', 'font-family', 'line-height',
+                              'orphans', 'page-break-after', 'widows',
+                              'vertical-align', 'margin.*', 'text-align')
             ]
         if remove_style_rules_re is None:
             remove_style_rules_re = []
 
-        self.remove_attrs_re = [
-            re.compile(regex) for regex in set(remove_attrs_re)
-        ]
-        self.remove_styles_re = [
-            re.compile(regex) for regex in set(remove_styles_re)
-        ]
-        self.remove_style_rules_re = [
-            re.compile(regex) for regex in set(remove_style_rules_re)
-        ]
+        self.remove_attrs_re = remove_attrs_re
+        self.remove_styles_re = remove_styles_re
+        self.remove_style_rules_re = remove_style_rules_re
 
     @classmethod
     def from_config(
@@ -109,8 +108,9 @@ class StripElementsTransform(doc_transform.Transformation):
             remove_style_rules_re=config.remove_style_rules_re,
             remove_styles_re=config.remove_styles_re)
 
-    def _is_included(self, dict_key: str,
-                     exclude_re_list: Sequence[re.Pattern[str]]) -> bool:
+    def _is_included(
+            self, dict_key: str,
+            exclude_re_list: Sequence[tags_basic.StringMatcher]) -> bool:
         """Check if the dictionary key matches non of the excludes."""
         for regex in exclude_re_list:
             if regex.fullmatch(dict_key):

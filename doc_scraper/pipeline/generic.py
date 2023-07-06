@@ -3,7 +3,6 @@
 import inspect
 import dataclasses
 import builtins
-import re
 from typing import (
     Callable,
     Any,
@@ -206,10 +205,12 @@ class GenericBuilder(Generic[_T]):
             type_hooks={
                 Type[object]:
                     self._type_from_str,
-                re.Pattern:
-                    re.compile,
+                tags_basic.StringMatcher:
+                    tags_basic.StringMatcher,
                 tags_basic.MappingMatcher:
-                    lambda data: tags_basic.MappingMatcher(**data)
+                    lambda data: tags_basic.MappingMatcher(**data),
+                tags_basic.TypeMatcher:
+                    lambda data: tags_basic.TypeMatcher(*data),
             })
 
         self.modules = [builtins, doc_struct]

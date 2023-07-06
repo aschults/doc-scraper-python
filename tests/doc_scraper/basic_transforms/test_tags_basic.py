@@ -2,7 +2,6 @@
 
 from typing import Sequence, Callable, Any, Mapping
 import unittest
-import re
 
 from parameterized import parameterized  # type:ignore
 
@@ -80,32 +79,30 @@ class TestTagMatching(unittest.TestCase):
         sample_table = doc_struct.Table(elements=[])
 
         self.assertTrue(
-            tags_basic.TagMatchConfig(
-                element_types=[doc_struct.Chip]).is_matching(sample_chip))
+            tags_basic.TagMatchConfig(element_types=tags_basic.TypeMatcher(
+                doc_struct.Chip)).is_matching(sample_chip))
         self.assertTrue(
-            tags_basic.TagMatchConfig(
-                element_types=[doc_struct.ParagraphElement]).is_matching(
-                    sample_chip))
+            tags_basic.TagMatchConfig(element_types=tags_basic.TypeMatcher(
+                doc_struct.ParagraphElement)).is_matching(sample_chip))
         self.assertTrue(
-            tags_basic.TagMatchConfig(
-                element_types=[doc_struct.ParagraphElement]).is_matching(
-                    sample_run))
+            tags_basic.TagMatchConfig(element_types=tags_basic.TypeMatcher(
+                doc_struct.ParagraphElement)).is_matching(sample_run))
         self.assertFalse(
-            tags_basic.TagMatchConfig(
-                element_types=[doc_struct.Heading]).is_matching(sample_chip))
+            tags_basic.TagMatchConfig(element_types=tags_basic.TypeMatcher(
+                doc_struct.Heading)).is_matching(sample_chip))
         self.assertFalse(
-            tags_basic.TagMatchConfig(
-                element_types=[doc_struct.Heading]).is_matching(sample_table))
+            tags_basic.TagMatchConfig(element_types=tags_basic.TypeMatcher(
+                doc_struct.Heading)).is_matching(sample_table))
         self.assertTrue(
-            tags_basic.TagMatchConfig(element_types=[
+            tags_basic.TagMatchConfig(element_types=tags_basic.TypeMatcher(
                 doc_struct.Table,
                 doc_struct.ParagraphElement,
-            ]).is_matching(sample_table))
+            )).is_matching(sample_table))
         self.assertTrue(
-            tags_basic.TagMatchConfig(element_types=[
+            tags_basic.TagMatchConfig(element_types=tags_basic.TypeMatcher(
                 doc_struct.Table,
                 doc_struct.ParagraphElement,
-            ]).is_matching(sample_run))
+            )).is_matching(sample_run))
 
 
 class TestFilterConversion(unittest.TestCase):
@@ -294,7 +291,7 @@ class TextMatchTest(unittest.TestCase):
             'constant value',
             tags_basic.TagMatchConfig(element_expressions=[
                 tags_basic.ElementExpressionMatchConfig(
-                    expr='1', regex_match=re.compile(r'\d'))
+                    expr='1', regex_match=tags_basic.StringMatcher(r'\d'))
             ]),
             doc_struct.TextRun(text='blah'),
         ),
@@ -302,7 +299,8 @@ class TextMatchTest(unittest.TestCase):
             'field',
             tags_basic.TagMatchConfig(element_expressions=[
                 tags_basic.ElementExpressionMatchConfig(
-                    expr='_{0.text}_', regex_match=re.compile('_blah_'))
+                    expr='_{0.text}_',
+                    regex_match=tags_basic.StringMatcher('_blah_'))
             ]),
             doc_struct.TextRun(text='blah'),
         ),
@@ -319,7 +317,7 @@ class TextMatchTest(unittest.TestCase):
         config = tags_basic.TagMatchConfig(element_expressions=[
             tags_basic.ElementExpressionMatchConfig(
                 expr='_{ancestors[0].tags[id]}_',
-                regex_match=re.compile('_123_'))
+                regex_match=tags_basic.StringMatcher('_123_'))
         ])
         data = doc_struct.Paragraph(tags={'id': '123'},
                                     elements=[doc_struct.TextRun(text='blah')])
@@ -332,17 +330,17 @@ class TextMatchTest(unittest.TestCase):
             'constant value non matching',
             tags_basic.TagMatchConfig(element_expressions=[
                 tags_basic.ElementExpressionMatchConfig(
-                    expr='x', regex_match=re.compile(r'\d'))
+                    expr='x', regex_match=tags_basic.StringMatcher(r'\d'))
             ]),
             doc_struct.TextRun(text='blah'),
         ),
         (
             'missing attrib key error',
             tags_basic.TagMatchConfig(element_expressions=[
-                tags_basic.ElementExpressionMatchConfig(expr='{bad_attrib}',
-                                                        regex_match=re.compile(
-                                                            r'\d'),
-                                                        ignore_key_errors=True)
+                tags_basic.ElementExpressionMatchConfig(
+                    expr='{bad_attrib}',
+                    regex_match=tags_basic.StringMatcher(r'\d'),
+                    ignore_key_errors=True)
             ]),
             doc_struct.TextRun(text='blah'),
         ),
@@ -362,10 +360,12 @@ class TextMatchTest(unittest.TestCase):
         ])
         self.assertTrue(
             tags_basic.TagMatchConfig(
-                aggregated_text_regex=re.compile('abc def')).is_matching(data))
+                aggregated_text_regex=tags_basic.StringMatcher(
+                    'abc def')).is_matching(data))
         self.assertFalse(
             tags_basic.TagMatchConfig(
-                aggregated_text_regex=re.compile('abcXdef')).is_matching(data))
+                aggregated_text_regex=tags_basic.StringMatcher(
+                    'abcXdef')).is_matching(data))
 
 
 class TestTaggingTransform(unittest.TestCase):
@@ -379,7 +379,7 @@ class TestTaggingTransform(unittest.TestCase):
             tags=tags_basic.TagUpdateConfig(
                 add={'a': '>{ancestors[0].tags[id]}<'}),
             match_element=tags_basic.TagMatchConfig(
-                element_types=[doc_struct.TextRun]))
+                element_types=tags_basic.TypeMatcher(doc_struct.TextRun)))
         transform = tags_basic.TaggingTransform(config)
 
         result = transform(data)
