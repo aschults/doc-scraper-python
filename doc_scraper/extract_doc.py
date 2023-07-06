@@ -16,6 +16,7 @@ from absl import app  # type: ignore
 from absl import flags  # type: ignore
 
 from doc_scraper.pipeline import pipeline
+from doc_scraper import doc_loader
 
 CONFIG_FILE_FLAG: flags.FlagHolder[str] = flags.DEFINE_string(  # type:ignore
     'config', None, 'Config YAML file')
@@ -26,6 +27,9 @@ TEST_CONFIG_FLAG: flags.FlagHolder[bool] = flags.DEFINE_bool(  # type:ignore
 DUMP_SAMPLE_FLAG: flags.FlagHolder[bool] = flags.DEFINE_bool(  # type:ignore
     'config_sample', False, 'Dump sample config')
 
+DUMP_RAW_HTML_FLAG: flags.FlagHolder[str] = flags.DEFINE_string(  # type:ignore
+    'html_dump_dir', None, 'Write downloaded HTML to this directory')
+
 CONFIG_MISSING_ERROR = 'Need to provide config file (--config)'
 
 
@@ -34,6 +38,9 @@ def main(argv: Sequence[str]):
     logging.basicConfig(level=logging.INFO)
 
     builder = pipeline.PipelineBuilder()
+
+    if DUMP_RAW_HTML_FLAG.value is not None:
+        doc_loader.DocDownloader.raw_html_dump_dir = DUMP_RAW_HTML_FLAG.value
 
     if DUMP_SAMPLE_FLAG.value:
         print(builder.help_doc.as_yaml())

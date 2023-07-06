@@ -6,6 +6,7 @@ Currently only Google Drive API, using HTML export of Google Docs.
 
 from typing import Any, Optional
 import logging
+import os.path
 
 from google.auth import credentials as auth_credentials  # type: ignore
 from googleapiclient import discovery, http
@@ -17,6 +18,8 @@ from . import _auth
 
 class DocDownloader():
     """Download Google Docs and convert them to doc_struct."""
+
+    raw_html_dump_dir: Optional[str] = None
 
     # API Key, for use with the API client
     developer_key: Optional[str] = None
@@ -67,7 +70,13 @@ class DocDownloader():
         resp = req.execute()
         if isinstance(resp, bytes):
             resp = resp.decode('utf-8')
-        logging.debug('Raw HTML: %s', resp)
+
+        if self.raw_html_dump_dir is not None:
+            dump_path = os.path.join(self.raw_html_dump_dir,
+                                     doc_id + '_raw.html')
+            with open(dump_path, 'w', encoding='utf-8') as dump_file:
+                dump_file.write(resp)
+
         return resp
 
     def get_from_html(self, doc_id: str) -> doc_struct.Document:

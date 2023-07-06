@@ -1,7 +1,7 @@
 """Tests for the Google document downloader."""
 
-import unittest
 from unittest import mock
+from pyfakefs import fake_filesystem_unittest  # type: ignore
 
 from typing import Any
 from google.oauth2 import credentials  # type: ignore
@@ -30,12 +30,13 @@ def _get_doc_tag(doc: doc_struct.Document) -> str:
     return text_converter.convert(paragraph.elements[0])
 
 
-class TestDocDownloader(unittest.TestCase):
+class TestDocDownloader(fake_filesystem_unittest.TestCase):
     """Test Google Docs download (as HTML via Drive)."""
 
     def setUp(self) -> None:
-        """Set up mocks for discovery API."""
+        """Set up fake filesystem."""
         super().setUp()
+        self.setUpPyfakefs()
 
         discovery_patcher = mock.patch('googleapiclient.discovery.build')
 
@@ -57,6 +58,21 @@ class TestDocDownloader(unittest.TestCase):
 
         result = downloader.get_from_html('id1')
         self.assertEqual('__content__', _get_doc_tag(result))
+
+        self.assertEqual(['tmp'], self.fs.listdir('/'))
+
+    def test_html_download_dump(self):
+        """Test a successful download."""
+        downloader = _google_docs.DocDownloader(creds_store=self.creds_store)
+
+        _google_docs.DocDownloader.raw_html_dump_dir = '/'
+
+        result = downloader.get_from_html('id1')
+        self.assertEqual('__content__', _get_doc_tag(result))
+
+        self.assertIn(
+            '__content__',
+            self.fs.get_object('/id1_raw.html').contents)  # type: ignore
 
     def test_html_download_empty(self):
         """Test a successful download of an empty doc."""
