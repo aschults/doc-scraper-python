@@ -18,7 +18,8 @@ class StripElementsConfig():
             default=None,
             metadata={
                 'help_text':
-                    'List for regexes. Matching keys in `attribs` are removed.',
+                    'List for regexes. Matching keys in ' +
+                    '`attribs` are removed.',
                 'help_samples': [('Remove all starting with _ or X_',
                                   ['_.*', 'X_.*'])]
             })

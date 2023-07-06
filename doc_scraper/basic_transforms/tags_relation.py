@@ -698,7 +698,7 @@ class AncestorPathEvaluator(Evaluator):
             'help_text':
                 'Template to use to render each level\'s value.',
             'help_samples': [('tag "heading" of each level',
-                              '0.tags[heading]'),],
+                              '0.tags[heading]')],
         })
 
     separator: str = dataclasses.field(

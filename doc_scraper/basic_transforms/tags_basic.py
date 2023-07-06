@@ -151,7 +151,7 @@ class StringMatcher():
               pos: int = 0,
               endpos: int = sys.maxsize) -> re.Match[str] | None:
         """Proxy re.Pattern's match method'."""
-        return self._regex.match(string)
+        return self._regex.match(string, pos, endpos)
 
     def sub(self,
             repl: str | Callable[[re.Match[str]], str],
