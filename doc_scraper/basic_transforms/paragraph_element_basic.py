@@ -1,6 +1,6 @@
 """Some transformations for paragraph elements and text runs."""
 
-from typing import (Optional, List)
+from typing import Optional
 import dataclasses
 
 from doc_scraper import doc_struct
@@ -11,31 +11,7 @@ from doc_scraper.basic_transforms import tags_basic
 
 
 @dataclasses.dataclass(kw_only=True)
-class RegexReplaceRule():
-    """Single regex with substitution."""
-
-    regex: tags_basic.StringMatcher = dataclasses.field(
-        metadata={
-            'help_text': 'The Python regex to match.',
-            'help_samples': [('All spaces (including newline)', r'\s+')]
-        })
-
-    substitute: str = dataclasses.field(
-        metadata={
-            'help_text': 'The replacement text.',
-            'help_samples': [('Replace with one space', ' ')]
-        })
-
-    operation: str = dataclasses.field(
-        default='',
-        metadata={
-            'help_text': 'Additional operation to apply.',
-            'help_samples': [('Make all lower case', 'lower')]
-        })
-
-
-@dataclasses.dataclass(kw_only=True)
-class RegexReplacerConfig():
+class RegexReplacerConfig(tags_basic.RegexReplacer):
     """Configuration for modifying text by regular expression."""
 
     match: tags_basic.TagMatchConfig = dataclasses.field(
@@ -47,27 +23,6 @@ class RegexReplacerConfig():
                 help_docs.ClassBasedSample(tags_basic.TagMatchConfig)
             ]
         })
-    substitutions: List[RegexReplaceRule] = dataclasses.field(
-        metadata={
-            'help_text': 'List of regex-based replacements.',
-            'help_samples': [[help_docs.ClassBasedSample(RegexReplaceRule)]],
-        })
-
-    def transform_text(self, text: str) -> str:
-        """Transform the text content."""
-        for subst in self.substitutions:
-            if not subst.operation:
-                text = subst.regex.sub(subst.substitute, text)
-            elif subst.operation == 'lower':
-                text = subst.regex.sub(
-                    lambda m: m.expand(subst.substitute).lower(), text)
-            elif subst.operation == 'upper':
-                text = subst.regex.sub(
-                    lambda m: m.expand(subst.substitute).upper(), text)
-            else:
-                raise ValueError(
-                    f'Unknown substitution operation {subst.operation}')
-        return text
 
 
 class TextTransformBase(doc_transform.Transformation):

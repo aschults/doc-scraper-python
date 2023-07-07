@@ -173,6 +173,62 @@ class StringMatcher():
         return self._regex.pattern
 
 
+@dataclasses.dataclass(kw_only=True)
+class RegexReplaceRule():
+    """Single regex with substitution."""
+
+    regex: StringMatcher = dataclasses.field(
+        metadata={
+            'help_text': 'The Python regex to match.',
+            'help_samples': [('All spaces (including newline)', r'\s+')]
+        })
+
+    substitute: str = dataclasses.field(
+        metadata={
+            'help_text': 'The replacement text.',
+            'help_samples': [('Replace with one space', ' ')]
+        })
+
+    operation: str = dataclasses.field(
+        default='',
+        metadata={
+            'help_text': 'Additional operation to apply.',
+            'help_samples': [('Make all lower case', 'lower')]
+        })
+
+    def sub(self, text: str) -> str:
+        """Perform the substitution on the text."""
+        if not self.operation:
+            return self.regex.sub(self.substitute, text)
+        elif self.operation == 'lower':
+            return self.regex.sub(
+                lambda m: m.expand(self.substitute).lower(), text)
+        elif self.operation == 'upper':
+            return self.regex.sub(
+                lambda m: m.expand(self.substitute).upper(), text)
+        else:
+            raise ValueError(
+                f'Unknown substitution operation {self.operation}')
+
+
+@dataclasses.dataclass(kw_only=True)
+class RegexReplacer():
+    """Transform text through mulitple substitutions."""
+
+    substitutions: Sequence[RegexReplaceRule] = dataclasses.field(
+        default_factory=list,
+        metadata={
+            'help_text': 'List of regex-based replacements.',
+            'help_samples': [[help_docs.ClassBasedSample(RegexReplaceRule)]],
+        })
+
+    def transform_text(self, text: str) -> str:
+        """Transform the text content."""
+        for subst in self.substitutions:
+            text = subst.sub(text)
+        return text
+
+
 class MappingMatcher():
     """Match a dict of tags against a dict of tags with regexes."""
 

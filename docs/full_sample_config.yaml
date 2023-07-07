@@ -74,6 +74,14 @@ transformations:
     -   kind: regex_replace
         # Configuration for modifying text by regular expression.
         config:
+            # List of regex-based replacements.
+            substitutions:
+            -   # The Python regex to match.
+                regex: "\\s+"  # All spaces (including newline)
+                # The replacement text.
+                substitute: " "  # Replace with one space
+                # Additional operation to apply.
+                operation: "lower"  # Make all lower case
             # Constraints required for the substitution to happen.
             match:
                 element_types:  # Any paragraph element, e.g. TextRun
@@ -107,14 +115,6 @@ transformations:
                         # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
-            # List of regex-based replacements.
-            substitutions:
-            -   # The Python regex to match.
-                regex: "\\s+"  # All spaces (including newline)
-                # The replacement text.
-                substitute: " "  # Replace with one space
-                # Additional operation to apply.
-                operation: "lower"  # Make all lower case
         
     # Remove unwanted keys from attrs, style and ShardData.style_rules
     -   kind: strip_elements

@@ -7,74 +7,6 @@ from doc_scraper.basic_transforms import paragraph_element_basic
 from doc_scraper.basic_transforms import tags_basic
 
 
-class TestRegexReplace(unittest.TestCase):
-    """Test regex replacement."""
-
-    def test_replace_single(self):
-        """Test simple replacement."""
-        replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
-            paragraph_element_basic.RegexReplaceRule(
-                regex=tags_basic.StringMatcher('x'),
-                substitute='y',
-            )
-        ])
-
-        self.assertEqual('ayc', replacer.transform_text('axc'))
-
-    def test_replace_non_match(self):
-        """Test non-matching replacement."""
-        replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
-            paragraph_element_basic.RegexReplaceRule(
-                regex=tags_basic.StringMatcher('x'),
-                substitute='y',
-            )
-        ])
-
-        self.assertEqual('abc', replacer.transform_text('abc'))
-
-    def test_replace_chained(self):
-        """Test chained replacements."""
-        replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
-            paragraph_element_basic.RegexReplaceRule(
-                regex=tags_basic.StringMatcher('x'),
-                substitute='y',
-            ),
-            paragraph_element_basic.RegexReplaceRule(
-                regex=tags_basic.StringMatcher('ay'),
-                substitute='U',
-            )
-        ])
-
-        self.assertEqual('Uc', replacer.transform_text('axc'))
-
-    def test_replace_operations(self):
-        """Test operations."""
-        data = [
-            ('upper', '_XY_12'),
-            ('lower', '_xy_12'),
-        ]
-        for (operation, expected) in data:
-            replacer = paragraph_element_basic.RegexReplacerConfig(
-                substitutions=[
-                    paragraph_element_basic.RegexReplaceRule(
-                        regex=tags_basic.StringMatcher('^(..)'),
-                        substitute=r'_\1_',
-                        operation=operation)
-                ])
-            self.assertEqual(expected, replacer.transform_text('xY12'))
-
-    def test_replace_bad_operation(self):
-        """Test bad operations."""
-        replacer = paragraph_element_basic.RegexReplacerConfig(substitutions=[
-            paragraph_element_basic.RegexReplaceRule(
-                regex=tags_basic.StringMatcher('^(..)'),
-                substitute=r'_\1_',
-                operation='bad_value')
-        ])
-        self.assertRaisesRegex(ValueError, 'Unknown substitution',
-                               lambda: replacer.transform_text(''))
-
-
 class _SampleTextTransform(paragraph_element_basic.TextTransformBase):
 
     def __init__(self, match: int) -> None:
@@ -139,7 +71,7 @@ class TestRegexReplacerTransform(unittest.TestCase):
             match=tags_basic.TagMatchConfig(
                 required_tag_sets=[tags_basic.MappingMatcher.tags('A')]),
             substitutions=[
-                paragraph_element_basic.RegexReplaceRule(
+                tags_basic.RegexReplaceRule(
                     regex=tags_basic.StringMatcher('.'), substitute='X'),
             ])
 
