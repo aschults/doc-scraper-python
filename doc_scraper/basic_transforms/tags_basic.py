@@ -575,26 +575,28 @@ class TagUpdateConfig():
         metadata={
             'help_docs':
                 'If set to true, KeyError, IndexError and AttributeError ' +
-                'are ignored and a value to show the error is used instead.',
+                'are ignored and no updates performed.',
         })
 
     # pylint: disable=unused-argument
     def _interpolate_tag(self, key: str, template: str, *args: Any,
-                         **kwargs: Any) -> str:
+                         **kwargs: Any) -> Optional[str]:
         """Interpolate a tag value with element and other data."""
         try:
             return template.format(*args, **kwargs)
         except (KeyError, IndexError, AttributeError) as exc:
             if self.ignore_errors:
-                return f'<<Error: {exc}>>'
+                return None
             raise exc
 
     def update_tags(self, element: _T, **substitutes: Any) -> _T:
         """Update the passed element with the speficied tags."""
-        interpolated_added = {
-            k: self._interpolate_tag(k, v, element, **substitutes)
-            for k, v in self.add.items()
-        }
+        interpolated_added = {}
+        for k, v in self.add.items():
+            new_value = self._interpolate_tag(k, v, element, **substitutes)
+            if new_value is None:
+                continue
+            interpolated_added[k] = new_value
         if '*' in self.remove:
             new_tags: Dict[str, str] = {}
         else:

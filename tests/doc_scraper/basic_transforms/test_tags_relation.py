@@ -728,6 +728,29 @@ class TestEvaluators(unittest.TestCase):
         result_tag = result.tags['id'] if result is not None else None
         self.assertEqual(expected, result_tag)
 
+    def test_text_aggregator(self):
+        """Test text aggregation."""
+        data = doc_struct.Paragraph(tags={'id': '111'},
+                                    elements=[
+                                        doc_struct.TextRun(text='text1'),
+                                        doc_struct.TextRun(text='text2'),
+                                    ])
+        evaluator = tags_relation.TextAggregationEvaluator()
+        self.assertEqual('text1text2', evaluator.get_value(data, []))
+
+    def test_text_aggregator_with_regex(self):
+        """Test text aggregation and perform regex substitute after."""
+        data = doc_struct.Paragraph(tags={'id': '111'},
+                                    elements=[
+                                        doc_struct.TextRun(text='text1'),
+                                        doc_struct.TextRun(text='text2'),
+                                    ])
+        evaluator = tags_relation.TextAggregationEvaluator(substitutions=[
+            tags_basic.RegexReplaceRule(
+                regex=tags_basic.StringMatcher(r'(\d)'), substitute=r'_\1_')
+        ])
+        self.assertEqual('text_1_text_2_', evaluator.get_value(data, []))
+
 
 class TestRelativeTaggingTransform(unittest.TestCase):
     """Test the full transform for relative tagging."""
@@ -773,10 +796,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
                         element_at=tags_relation.RelativePositionConfig(
                             row='next')),
             },
-            [
-                ('43',
-                 '<<Error: \'NoneType\' object has no attribute \'tags\'>>'),
-            ],
+            [],
         ),
         (
             'multiple var',

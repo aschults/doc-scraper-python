@@ -10,20 +10,28 @@ transformations:
   config:
     tags:
       add:
-        in_scope: "Y"
+        section: "{merged_text}"
     match_element:
       element_types:
         - Section
-      aggregated_text_regex: "^With\\s+prefix"
+    variables:
+      merged_text:
+        section_heading_only: True
+        substitutions:
+        - regex: "(.)"
+          substitute: "\\1"
+          operation: lower
+        - regex: "^\\s+"
+          substitute: ""
+        - regex: "\\s+$"
+          substitute: ""
+        - regex: "\\s+"
+          substitute: "_"
 - kind: tag_matching
   config:
     tags:
       add:
         bold: "Y"
-    match_ancestor_list:
-    -   element_types:  [ Section ]
-        required_tag_sets:
-        - { in_scope: Y }
     match_element:
       element_types:
         - TextRun
@@ -33,12 +41,40 @@ transformations:
   config:
     tags:
       add:
-        text: "{0.text}"
+        label: "{text}"
     match_element:
       element_types:
         - TextRun
       required_tag_sets:
       - { bold: Y }
+    match_ancestor_list:
+    -   element_types:  [ Section ]
+        required_tag_sets:
+        - { section: with_prefix }
+    variables:
+      text:
+        section_heading_only: True
+        substitutions:
+        - regex: "(.)"
+          substitute: "\\1"
+          operation: lower
+        - regex: "^\\s+"
+          substitute: ""
+        - regex: "[\\s:]+$"
+          substitute: ""
+- kind: tag_matching
+  config:
+    tags:
+      add:
+        for_label: "{prev_element.tags[label]}"
+      ignore_errors: True
+    match_element:
+      element_types:
+        - TextRun
+    variables:
+      prev_element:
+        element_at:
+          col: prev
 - kind: strip_elements
   config:
     remove_styles_re: ['.*']

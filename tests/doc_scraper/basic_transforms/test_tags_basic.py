@@ -471,7 +471,5 @@ class TestTaggingTransform(unittest.TestCase):
             'bad_key',
             lambda: tags_basic.TaggingTransform(config_raise)(data),
         )
-        self.assertEqual(
-            '<<Error: \'bad_key\'>>',
-            tags_basic.TaggingTransform(config_skip)(data).tags['a'],
-        )
+        self.assertNotIn('a',
+                         tags_basic.TaggingTransform(config_skip)(data).tags)

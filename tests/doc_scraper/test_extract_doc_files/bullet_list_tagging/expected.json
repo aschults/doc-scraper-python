@@ -8,6 +8,9 @@
         "elements": [
             {
                 "type": "Section",
+                "tags": {
+                    "section": "structures"
+                },
                 "heading": {
                     "type": "Heading",
                     "level": 1,
@@ -32,6 +35,9 @@
                 "content": [
                     {
                         "type": "Section",
+                        "tags": {
+                            "section": "with_prefix"
+                        },
                         "heading": {
                             "type": "Heading",
                             "level": 2,
@@ -46,6 +52,10 @@
                                 {
                                     "type": "TextRun",
                                     "text": "With prefix"
+                                },
+                                {
+                                    "type": "TextRun",
+                                    "text": "\n    "
                                 }
                             ]
                         },
@@ -90,11 +100,22 @@
                                             },
                                             {
                                                 "type": "TextRun",
-                                                "text": "Name:"
+                                                "text": "Name:",
+                                                "tags": {
+                                                    "bold": "Y",
+                                                    "label": "name"
+                                                }
                                             },
                                             {
                                                 "type": "TextRun",
-                                                "text": " Prefix First entry"
+                                                "text": " Prefix First entry",
+                                                "tags": {
+                                                    "for_label": "name"
+                                                }
+                                            },
+                                            {
+                                                "type": "TextRun",
+                                                "text": "\n        "
                                             }
                                         ],
                                         "nested": [
@@ -111,11 +132,22 @@
                                                     },
                                                     {
                                                         "type": "TextRun",
-                                                        "text": "Field1:"
+                                                        "text": "Field1:",
+                                                        "tags": {
+                                                            "bold": "Y",
+                                                            "label": "field1"
+                                                        }
                                                     },
                                                     {
                                                         "type": "TextRun",
-                                                        "text": " prefix value1"
+                                                        "text": " prefix value1",
+                                                        "tags": {
+                                                            "for_label": "field1"
+                                                        }
+                                                    },
+                                                    {
+                                                        "type": "TextRun",
+                                                        "text": "\n        "
                                                     }
                                                 ]
                                             },
@@ -132,11 +164,22 @@
                                                     },
                                                     {
                                                         "type": "TextRun",
-                                                        "text": "Field2:"
+                                                        "text": "Field2:",
+                                                        "tags": {
+                                                            "bold": "Y",
+                                                            "label": "field2"
+                                                        }
                                                     },
                                                     {
                                                         "type": "TextRun",
-                                                        "text": " prefix value2"
+                                                        "text": " prefix value2",
+                                                        "tags": {
+                                                            "for_label": "field2"
+                                                        }
+                                                    },
+                                                    {
+                                                        "type": "TextRun",
+                                                        "text": "\n        "
                                                     }
                                                 ]
                                             }
@@ -169,6 +212,9 @@
                     },
                     {
                         "type": "Section",
+                        "tags": {
+                            "section": "non-matching"
+                        },
                         "heading": {
                             "type": "Heading",
                             "level": 2,
@@ -210,11 +256,18 @@
                                             },
                                             {
                                                 "type": "TextRun",
-                                                "text": "Name:"
+                                                "text": "Name:",
+                                                "tags": {
+                                                    "bold": "Y"
+                                                }
                                             },
                                             {
                                                 "type": "TextRun",
                                                 "text": " BAD ENTRY"
+                                            },
+                                            {
+                                                "type": "TextRun",
+                                                "text": "\n        "
                                             }
                                         ]
                                     }
@@ -378,6 +431,10 @@
                                                         },
                                                         {
                                                             "type": "TextRun",
+                                                            "text": "\n                "
+                                                        },
+                                                        {
+                                                            "type": "TextRun",
                                                             "text": "\n"
                                                         }
                                                     ]
@@ -480,6 +537,10 @@
                                                         {
                                                             "type": "TextRun",
                                                             "text": "MORE BAD ENTRIES"
+                                                        },
+                                                        {
+                                                            "type": "TextRun",
+                                                            "text": "\n                "
                                                         },
                                                         {
                                                             "type": "TextRun",

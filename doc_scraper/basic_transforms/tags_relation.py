@@ -11,6 +11,7 @@ from typing import (
     Literal,
     Any,
     Mapping,
+    Union,
 )
 import dataclasses
 from abc import abstractmethod, ABC
@@ -37,6 +38,7 @@ class CoordinateGrid(Protocol):
             1d (int) or 2d (tuple of 2 int) coordinates or None if not found.
         """
 
+    @abstractmethod
     def is_position_matching(self, element: doc_struct.Element,
                              pos_range: 'PositionMatchConfig') -> bool:
         """Check if an element is within a specified range.
@@ -379,7 +381,7 @@ def _coord_grid_from_paragraph_element_child(
     elif isinstance(parent, doc_struct.Paragraph):
         return _1DParagraphGridWrapper(parent)
     else:
-        raise ValueError(f'Bad parent type: {parent}')
+        raise ValueError(f'Bad parent type: {parent} for child {path[-1]}')
 
 
 def coord_grid_from_parent(parent: doc_struct.Element) -> CoordinateGrid:
@@ -427,7 +429,12 @@ def coord_grid_from_child(
     if isinstance(element, doc_struct.ParagraphElement):
         return _coord_grid_from_paragraph_element_child(path)
     elif isinstance(element, doc_struct.StructuralElement):
-        if isinstance(parent, (doc_struct.DocContent, doc_struct.Section)):
+        if isinstance(parent, doc_struct.Section):
+            if parent.heading == element:
+                # We arrived from the heading side, not content.
+                return None
+            return _1DVerticalGridWrapper(parent)
+        if isinstance(parent, doc_struct.DocContent):
             return _1DVerticalGridWrapper(parent)
     elif isinstance(element, doc_struct.DocContent):
         if isinstance(parent, doc_struct.Table):
@@ -731,10 +738,41 @@ class AncestorPathEvaluator(Evaluator):
             (self.level_value.format(element) for element in path))
 
 
+@dataclasses.dataclass(kw_only=True)
+class TextAggregationEvaluator(Evaluator, tags_basic.RegexReplacer):
+    """Get aggregated text from an element and its descendents."""
+
+    aggregation_mode: Literal['raw'] = dataclasses.field(
+        default='raw',
+        metadata={
+            'help_text': 'Text extraction mode.',
+            'help_samples': [('Default and only avaiable', 'raw')],
+        })
+
+    section_heading_only: bool = dataclasses.field(
+        default=False,
+        metadata={
+            'help_text': 'For Section element, only collect heading.',
+            'help_samples': [('Default', False)],
+        })
+
+    def get_value(self, element: doc_struct.Element,
+                  path: Optional[Sequence[doc_struct.Element]]) -> Any:
+        """Provide the aggregated text for interpolation."""
+        _text_converter = doc_struct.RawTextConverter()
+        if self.section_heading_only and isinstance(element,
+                                                    doc_struct.Section):
+            agg_text = _text_converter.convert(element.heading)
+        else:
+            agg_text = _text_converter.convert(element)
+        return self.transform_text(agg_text)
+
+
 # All evaluators as Union so Dacite can pick up on them.
 # Note: Dacite does currently not support creating subclases when
 #       a field is of type base class.
-EvaluatorsType = RelativePositionEvaluator | AncestorPathEvaluator
+EvaluatorsType = Union[RelativePositionEvaluator, AncestorPathEvaluator,
+                       TextAggregationEvaluator]
 
 
 @dataclasses.dataclass(kw_only=True)
