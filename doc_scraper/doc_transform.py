@@ -527,10 +527,16 @@ class _StructuralElementTransformation(_ParagraphTransformation):
     def _transform_section(self,
                            section: doc_struct.Section) -> doc_struct.Section:
         """Transform a section instance."""
-        return dataclasses.replace(
-            section,
-            heading=self._transform_section_heading(section.heading),
-            content=self._transform_section_content(section.content))
+        new_heading = None
+        if section.heading:
+            self.context.add(section.heading, 'heading')
+            new_heading = self._transform_section_heading(section.heading)
+            self.context.remove(section.heading)
+
+        return dataclasses.replace(section,
+                                   heading=new_heading,
+                                   content=self._transform_section_content(
+                                       section.content))
 
     def _transform_structural_element_base(
         self, structural_element: doc_struct.StructuralElement

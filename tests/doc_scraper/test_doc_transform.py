@@ -784,6 +784,54 @@ class TransformationTest(unittest.TestCase):
             PathAwareTextTransform(),
         ),
         (
+            'Section and paragraph',
+            doc_struct.Section(
+                style={'ref': 'a'},
+                heading=doc_struct.Heading(
+                    level=1,
+                    style={'ref': 'ah'},
+                    elements=[
+                        doc_struct.TextRun(style={'ref': 'aha'},
+                                           text='to be replaced'),
+                    ],
+                ),
+                content=[
+                    doc_struct.Paragraph(
+                        style={'ref': 'aa'},
+                        elements=[
+                            doc_struct.TextRun(style={'ref': 'aaa'},
+                                               text='to be replaced'),
+                        ],
+                    ),
+                ],
+            ),
+            doc_struct.Section(
+                style={'ref': 'a'},
+                heading=doc_struct.Heading(
+                    level=1,
+                    style={'ref': 'ah'},
+                    elements=[
+                        doc_struct.TextRun(
+                            style={'ref': 'aha'},
+                            text='.:Section(a)\n' +
+                            'heading:Heading(ah)\n0:TextRun(aha)'),
+                    ],
+                ),
+                content=[
+                    doc_struct.Paragraph(
+                        style={'ref': 'aa'},
+                        elements=[
+                            doc_struct.TextRun(
+                                style={'ref': 'aaa'},
+                                text='.:Section(a)\n' +
+                                '0:Paragraph(aa)\n0:TextRun(aaa)'),
+                        ],
+                    ),
+                ],
+            ),
+            PathAwareTextTransform(),
+        ),
+        (
             'Table and paragraph',
             doc_struct.DocContent(
                 style={'ref': 'a'},
