@@ -355,6 +355,9 @@ class DocContentFrame(_base.Frame):
             bullet_list = BulletListFrame(self.context, tag, attrs)
             self.elements.append(bullet_list)
             return bullet_list
+        if tag == 'a':
+            element = _base.DummyFrame(self.context, tag)
+            return element
         return None
 
     def handle_end(self, tag: str) -> 'Optional[_base.Frame]':

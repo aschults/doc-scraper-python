@@ -203,14 +203,12 @@ class GenericBuilder(Generic[_T]):
 
         self.dacite_config = dacite.Config(
             type_hooks={
-                Type[object]:
-                    self._type_from_str,
                 tags_basic.StringMatcher:
                     tags_basic.StringMatcher,
                 tags_basic.MappingMatcher:
                     lambda data: tags_basic.MappingMatcher(**data),
                 tags_basic.TypeMatcher:
-                    lambda data: tags_basic.TypeMatcher(*data),
+                    lambda data: tags_basic.TypeMatcher.from_strings(*data),
             })
 
         self.modules = [builtins, doc_struct]
@@ -226,21 +224,6 @@ class GenericBuilder(Generic[_T]):
         """
         self._cmdline_args = args
         self._cmdline_kwargs = kwargs
-
-    def _type_from_str(
-            self, type_str_or_object: Union[str,
-                                            Type[object]]) -> Type[object]:
-        """Convert string containing the name of a type to its type.
-
-        Used as conversion function for dacite. Types are looked up in
-        self.modules.
-        """
-        if isinstance(type_str_or_object, type):
-            return type_str_or_object
-        for module in self.modules:
-            if hasattr(module, type_str_or_object):
-                return getattr(builtins, type_str_or_object)
-        raise TypeError(f'Could not find type for {type_str_or_object}')
 
     def register(self,
                  kind: str,

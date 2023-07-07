@@ -2,11 +2,13 @@
 
 import dataclasses
 import unittest
-from typing import Type, List, Dict, Optional
+from typing import List, Dict, Optional
 
 import dacite
 
 from doc_scraper.pipeline import generic
+from doc_scraper.basic_transforms import tags_basic
+from doc_scraper import doc_struct
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -14,7 +16,8 @@ class SampleConfig():
     """Sample config to test the builder."""
 
     attr_a: int = 10
-    attr_type: Type[object] = str
+    attr_type: tags_basic.TypeMatcher = tags_basic.TypeMatcher(
+        doc_struct.Paragraph)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -182,24 +185,26 @@ class TestGenericBuilder(unittest.TestCase):
         """Test that dacite is able to assign type fields from strings."""
 
         def builder_func(config: SampleConfig) -> int:
-            return 11 if config.attr_type == float else 33
+            return 11 if config.attr_type.is_matching(
+                doc_struct.Section) else 33
 
         self.builder.register('x', builder_func)
 
         self.assertEqual(
-            11, self.builder.create_instance('x', {'attr_type': 'float'}))
+            11, self.builder.create_instance('x', {'attr_type': ['Section']}))
 
     def test_type_from_str_not_found(self):
         """Test that unknown type strings cause an exception."""
 
         def builder_func(config: SampleConfig) -> int:
-            return 11 if config.attr_type == float else 33
+            return 11 if config.attr_type.is_matching(
+                doc_struct.Section) else 33
 
         self.builder.register('x', builder_func)
 
         self.assertRaisesRegex(
             TypeError, r'Could not find type for whatever', lambda: self.
-            builder.create_instance('x', {'attr_type': 'whatever'}))
+            builder.create_instance('x', {'attr_type': ['whatever']}))
 
     def test_cmdline_args_instance(self):
         """Test if command line args are passed to the new instance."""

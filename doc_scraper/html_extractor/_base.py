@@ -105,3 +105,26 @@ class Frame:
         name = type(self).__name__
         struct_dump = self.to_struct()
         return f"{name}({self.context},'{struct_dump}')"
+
+
+class DummyFrame(Frame):
+    """Represents an A tag outside of a span.
+
+    Used as target for bookmarks, footnotes and comments.
+    """
+
+    def __init__(self, context: ParseContext, tag: str) -> None:
+        """Construct an instance."""
+        super().__init__(context)
+        self.tag = tag
+
+    def handle_end(self, tag: str) -> Optional[Frame]:
+        """Handle end tag of a and span tags."""
+        if tag == self.tag:
+            return self
+        else:
+            raise UnexpectedHtmlTag(f'Unexpected tag {tag} procesing {self}.')
+
+    def to_struct(self) -> doc_struct.Element:
+        """Convert to doc_struct structure."""
+        return doc_struct.Element()

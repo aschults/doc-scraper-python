@@ -1,9 +1,11 @@
 """Test the extract_doc script with file-based cases."""
 from os import path
 import os
+from typing import Sequence, Tuple
 
 from absl.testing import flagsaver  # type: ignore
 from pyfakefs import fake_filesystem_unittest  # type: ignore
+from parameterized import parameterized  # type:ignore
 
 import doc_scraper.extract_doc as extract_doc
 
@@ -30,28 +32,34 @@ class ExtractDocTest(fake_filesystem_unittest.TestCase):
         self.fs.add_real_directory(self.test_dir)  # type: ignore
         return super().setUp()
 
-    @flagsaver.flagsaver  # type: ignore
-    def test_simple(self):
-        """Test a simple strip elements pipeline."""
+    @staticmethod
+    def list_test_case_dirs() -> Sequence[Tuple[str, str]]:
+        """Generate all test names and paths to parametrize test."""
         base_dir = path.dirname(__file__)
         test_dir = path.join(base_dir, 'test_extract_doc_files')
+        test_case_dirs = ((directory, path.join(test_dir, directory))
+                          for directory in os.listdir(test_dir))
+        return [
+            dirs for dirs in test_case_dirs
+            if path.isdir(dirs[1])
+        ]
 
-        for test_case_dir in os.listdir(test_dir):
-            full_test_case_dir = path.join(test_dir, test_case_dir)
-            if not path.isdir(full_test_case_dir):
-                continue
+    @parameterized.expand(list_test_case_dirs())  # type:ignore
+    @flagsaver.flagsaver  # type: ignore
+    # pylint: disable=unused-argument
+    def test_main(self, name: str, full_test_case_dir: str):
+        """Test the extract_doc main function on multiple configs/data."""
+        os.chdir(full_test_case_dir)
+        print(os.listdir('.'))
+        flagsaver.FLAGS.config_sample = False
+        flagsaver.FLAGS.config = path.join(full_test_case_dir, 'config.yaml')
+        flagsaver.FLAGS.mark_as_parsed()
+        extract_doc.main([])
 
-            os.chdir(full_test_case_dir)
-            print(os.listdir('.'))
-            flagsaver.FLAGS.config_sample = False
-            flagsaver.FLAGS.config = path.join(full_test_case_dir,
-                                               'config.yaml')
-            flagsaver.FLAGS.mark_as_parsed()
-            extract_doc.main([])
+        with open('expected.json', 'r', encoding='utf8') as expected_file:
+            expected = expected_file.read()
+        with open('/tmp/result.json', 'r', encoding='utf8') as result_file:
+            actual = result_file.read()
 
-            with open('expected.json', 'r', encoding='utf8') as expected_file:
-                expected = expected_file.read()
-            with open('/result.json', 'r', encoding='utf8') as result_file:
-                actual = result_file.read()
-
-            self.assertEqual(expected, actual)
+        self.maxDiff = None
+        self.assertEqual(expected, actual)

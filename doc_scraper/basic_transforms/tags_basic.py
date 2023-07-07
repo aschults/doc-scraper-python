@@ -13,6 +13,7 @@ from typing import (
     Mapping,
     TypeVar,
     Protocol,
+    Union,
 )
 import dataclasses
 import re
@@ -175,9 +176,15 @@ class StringMatcher():
 class MappingMatcher():
     """Match a dict of tags against a dict of tags with regexes."""
 
-    def __init__(self, **mapping: StringMatcher) -> None:
+    def __init__(self, **mapping: StringMatcher | str) -> None:
         """Create an instance."""
-        self._mapping = mapping
+        mapping2 = {
+            key:
+                value
+                if isinstance(value, StringMatcher) else StringMatcher(value)
+            for key, value in mapping.items()
+        }
+        self._mapping = mapping2
 
     @classmethod
     def tags(
@@ -280,10 +287,34 @@ class TypeMatcher():
         self._types = types
 
     def is_matching(self, obj: Any) -> bool:
-        """Test if `obj` is a matching instance."""
+        """Test if `obj` is a matching instance or type."""
         if not self._types:
             return True
+        if isinstance(obj, type):
+            return issubclass(obj, tuple(self._types))
         return isinstance(obj, tuple(self._types))
+
+    @classmethod
+    def _type_from_str(
+        cls, type_str_or_object: Union[str, Type[doc_struct.Element]]
+    ) -> Type[doc_struct.Element]:
+        """Convert string containing the name of a type to its type.
+
+        Used as conversion function for dacite. Types are looked up in
+        self.modules.
+        """
+        if isinstance(type_str_or_object, type):
+            return type_str_or_object
+        if hasattr(doc_struct, type_str_or_object):
+            return getattr(doc_struct, type_str_or_object)
+        raise TypeError(f'Could not find type for {type_str_or_object}')
+
+    @classmethod
+    def from_strings(cls,
+                     *args: str | Type[doc_struct.Element]) -> 'TypeMatcher':
+        """Build an instance, converting string args to types."""
+        as_types = [cls._type_from_str(arg) for arg in args]
+        return TypeMatcher(*as_types)
 
 
 @dataclasses.dataclass(kw_only=True)

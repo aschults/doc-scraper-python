@@ -1,0 +1,50 @@
+sources:
+- kind: doc_files
+  config:
+    doc_filenames:
+    - data.html
+transformations:
+- kind: nest_bullets       
+- kind: nest_sections
+- kind: tag_matching
+  config:
+    tags:
+      add:
+        in_scope: "Y"
+    match_element:
+      element_types:
+        - Section
+      aggregated_text_regex: "^With\\s+prefix"
+- kind: tag_matching
+  config:
+    tags:
+      add:
+        bold: "Y"
+    match_ancestor_list:
+    -   element_types:  [ Section ]
+        required_tag_sets:
+        - { in_scope: Y }
+    match_element:
+      element_types:
+        - TextRun
+      required_style_sets:
+      - { font-weight: "700" }
+- kind: tag_matching
+  config:
+    tags:
+      add:
+        text: "{0.text}"
+    match_element:
+      element_types:
+        - TextRun
+      required_tag_sets:
+      - { bold: Y }
+- kind: strip_elements
+  config:
+    remove_styles_re: ['.*']
+    remove_style_rules_re: ['.*']
+outputs:
+- kind: stdout
+- kind: single_file
+  config:
+    output_file: /tmp/result.json

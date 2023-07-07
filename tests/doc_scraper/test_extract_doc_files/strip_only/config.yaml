@@ -11,4 +11,4 @@ outputs:
 - kind: stdout
 - kind: single_file
   config:
-    output_file: /result.json
+    output_file: /tmp/result.json
