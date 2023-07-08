@@ -202,6 +202,8 @@ class GenericBuilder(Generic[_T]):
         self._registry: Dict[str, _BuilderData[_T]] = dict()
 
         self.dacite_config = dacite.Config(
+            strict=True,
+            strict_unions_match=True,
             type_hooks={
                 tags_basic.StringMatcher:
                     tags_basic.StringMatcher,
