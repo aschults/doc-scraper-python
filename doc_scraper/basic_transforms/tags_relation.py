@@ -11,6 +11,7 @@ from typing import (
     Literal,
     Any,
     Mapping,
+    List,
     Union,
 )
 import dataclasses
@@ -31,6 +32,7 @@ _P = TypeVar('_P', doc_struct.Paragraph | doc_struct.TextLine,
 class CoordinateGrid(Protocol):
     """Interface for a Coordinate grid, 1d and 2d case."""
 
+    @abstractmethod
     def find(self, element: doc_struct.Element) -> Optional[CoordinatesType]:
         """Find the passed element and return it's coordinates.
 
@@ -527,6 +529,60 @@ class PositionMatchConfig(tags_basic.TagMatchConfig):
         return super().is_matching(element, path)
 
 
+SkipModeType = Literal['any', 'exactly', 'at_least']
+
+
+@dataclasses.dataclass(kw_only=True)
+class MatchListGapConfig():
+    """Placed in match_ancestor_list to mark gaps."""
+
+    skip_ancestors: SkipModeType = dataclasses.field(  # type:ignore
+        metadata={
+            'help_text':
+                'Mode for skipping ancestors at this point in the list.',
+            'help_samples': [
+                ('Require exactly skip_count ancestor in between', 'exactly'),
+                ('Allow skip_count or more ancestors in between', 'at_least'),
+                ('Allow any number of ancestors in between', 'any'),
+            ],
+        })
+
+    skip_count: int = dataclasses.field(
+        default=0,
+        metadata={
+            'help_text': 'Number of ancestors to skip (depending on mode).',
+            'help_samples': [1],
+        })
+
+    def __post_init__(self):
+        """Validate that parameters passed are correct."""
+        if self.skip_ancestors != 'any':
+            if self.skip_count == 0:
+                raise ValueError('Need to have non-zero skip_count')
+        else:
+            if self.skip_count != 0:
+                raise ValueError('No skip count for "any" mode')
+
+        if self.skip_count < 0:
+            raise ValueError('Positive skip_count only')
+
+    @property
+    def is_open_length(self) -> bool:
+        """Return True if the gap can extend indefinitely."""
+        return self.skip_ancestors in ('any', 'at_least')
+
+    def merge(self, other: 'MatchListGapConfig') -> 'MatchListGapConfig':
+        """Merge two gaps."""
+        num_items = self.skip_count + other.skip_count
+        if num_items == 0:
+            mode = 'any'
+        elif self.is_open_length or other.is_open_length:
+            mode = 'at_least'
+        else:
+            mode = 'exactly'
+        return MatchListGapConfig(skip_ancestors=mode, skip_count=num_items)
+
+
 @dataclasses.dataclass(kw_only=True)
 class RelationalMatchingConfig():
     """Describe matching and tagging criteria including inter-element."""
@@ -538,15 +594,17 @@ class RelationalMatchingConfig():
             'help_samples': [help_docs.ClassBasedSample(PositionMatchConfig)],
         })
 
-    match_ancestor_list: Sequence[PositionMatchConfig] = dataclasses.field(
-        default_factory=list,
-        metadata={
-            'help_text':
-                'List of ordered criteria to match along the ancestors',
-            'help_samples': [[
-                help_docs.ClassBasedSample(tags_basic.TagMatchConfig)
-            ]],
-        })
+    match_ancestor_list: Sequence[
+        MatchListGapConfig | PositionMatchConfig] = dataclasses.field(
+            default_factory=list,
+            metadata={
+                'help_text':
+                    'List of criteria to match along the ancestors path',
+                'help_samples': [[
+                    help_docs.ClassBasedSample(tags_basic.TagMatchConfig),
+                    help_docs.ClassBasedSample(MatchListGapConfig),
+                ]],
+            })
 
     match_descendent: Optional[tags_basic.TagMatchConfig] = dataclasses.field(
         default=None,
@@ -558,6 +616,69 @@ class RelationalMatchingConfig():
             ],
         })
 
+    def _canonicalize_ancestor_matches(
+            self) -> List[PositionMatchConfig | MatchListGapConfig]:
+        """Clean up the ancestor match list by merging gaps."""
+        result: List[PositionMatchConfig | MatchListGapConfig] = []
+        last_item: Optional[MatchListGapConfig] = None
+        for matcher in self.match_ancestor_list:
+            if isinstance(matcher, MatchListGapConfig):
+                if last_item:
+                    last_item = last_item.merge(matcher)
+                else:
+                    last_item = matcher
+            else:
+                if last_item:
+                    result.append(last_item)
+                last_item = None
+                result.append(matcher)
+        if last_item:
+            result.append(last_item)
+        return result
+
+    @classmethod
+    # flake8: noqa
+    def _is_ancestor_subpaths_matching(
+        cls,
+        match_list_: Sequence[PositionMatchConfig | MatchListGapConfig],
+        path_list_: Sequence[doc_struct.Element],
+    ) -> bool:
+        """Match the front part of the ancestor match list."""
+        if not match_list_:
+            return len(path_list_) == 0
+
+        if not path_list_:
+            return all(
+                isinstance(item, MatchListGapConfig) and
+                item.skip_ancestors == 'any' for item in match_list_)
+
+        match_list = list(match_list_)
+        path_list = list(path_list_)
+
+        while match_list:
+            matcher = match_list.pop()
+            if isinstance(matcher, MatchListGapConfig):
+                if matcher.skip_count > 0:
+                    for _ in range(abs(matcher.skip_count)):
+                        if not path_list:
+                            return False
+                        path_list.pop()
+                if matcher.is_open_length:
+                    while path_list:
+                        if cls._is_ancestor_subpaths_matching(
+                                match_list, path_list):
+                            return True
+                        path_list.pop()
+            else:
+                if not path_list:
+                    return False
+                ancestor = path_list[-1]
+                if not matcher.is_matching(ancestor, path_list):
+                    return False
+                path_list.pop()
+
+        return len(path_list) == 0
+
     def _is_ancestor_matching(self,
                               path: Sequence[doc_struct.Element]) -> bool:
         if not self.match_ancestor_list:
@@ -566,21 +687,9 @@ class RelationalMatchingConfig():
         if not path:
             raise ValueError('Expecting at lteast on item on ancestor path')
         path_list = list(path[:-1])  # Exclude current element
-        if not path_list:
-            return False
+        match_list2 = self._canonicalize_ancestor_matches()
 
-        for matcher in self.match_ancestor_list[::-1]:
-            if not path_list:
-                return False
-            ancestor_matched = False
-            while path_list:
-                ancestor = path_list.pop()
-                if matcher.is_matching(ancestor, path_list + [ancestor]):
-                    ancestor_matched = True
-                    break
-            if not ancestor_matched:
-                return False
-        return True
+        return self._is_ancestor_subpaths_matching(match_list2, path_list)
 
     def _are_descendents_matching(self, element: doc_struct.Element) -> bool:
         if not self.match_descendent:

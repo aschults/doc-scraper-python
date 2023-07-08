@@ -172,6 +172,17 @@ class StringMatcher():
         """Convert to string."""
         return self._regex.pattern
 
+    def __eq__(self, other: object) -> bool:
+        """Compare two instances."""
+        if not isinstance(other, StringMatcher):
+            return False
+        return self._regex == other._regex
+
+    def __repr__(self) -> str:
+        """Convert to Python representation."""
+        re_repr = repr(self._regex.pattern)
+        return f'StringMatcher({re_repr})'
+
 
 @dataclasses.dataclass(kw_only=True)
 class RegexReplaceRule():
@@ -201,11 +212,11 @@ class RegexReplaceRule():
         if not self.operation:
             return self.regex.sub(self.substitute, text)
         elif self.operation == 'lower':
-            return self.regex.sub(
-                lambda m: m.expand(self.substitute).lower(), text)
+            return self.regex.sub(lambda m: m.expand(self.substitute).lower(),
+                                  text)
         elif self.operation == 'upper':
-            return self.regex.sub(
-                lambda m: m.expand(self.substitute).upper(), text)
+            return self.regex.sub(lambda m: m.expand(self.substitute).upper(),
+                                  text)
         else:
             raise ValueError(
                 f'Unknown substitution operation {self.operation}')
@@ -266,6 +277,17 @@ class MappingMatcher():
             if value.match(tags[key]):
                 return True
         return False
+
+    def __eq__(self, other: object) -> bool:
+        """Compare two instances."""
+        if not isinstance(other, MappingMatcher):
+            return False
+        return self._mapping == other._mapping
+
+    def __repr__(self) -> str:
+        """Convert to Python representation."""
+        repr_map = str(self._mapping)
+        return f'MappingMatcher({repr_map})'
 
 
 # All types that contain a text attribute.
@@ -371,6 +393,17 @@ class TypeMatcher():
         """Build an instance, converting string args to types."""
         as_types = [cls._type_from_str(arg) for arg in args]
         return TypeMatcher(*as_types)
+
+    def __eq__(self, other: object) -> bool:
+        """Compare two instances."""
+        if not isinstance(other, TypeMatcher):
+            return False
+        return self._types == other._types
+
+    def __repr__(self) -> str:
+        """Convert to Python representation."""
+        repr_map = repr(self._types)
+        return f'MappingMatcher({repr_map})'
 
 
 @dataclasses.dataclass(kw_only=True)

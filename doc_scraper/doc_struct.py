@@ -340,6 +340,8 @@ class DocStuctJsonEncoder(json.JSONEncoder):
 
 def _ensure_newline(text: str) -> str:
     """Make sure the text ends with a newline."""
+    if not text:
+        return '\n'
     if text[-1] != '\n':
         text += '\n'
     return text

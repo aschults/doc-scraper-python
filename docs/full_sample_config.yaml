@@ -194,7 +194,7 @@ transformations:
                 # Vertical end of matched elements. Unbound if not set.
                 end_row: 4  # Until 3rd row
                     # end_row: 1  # First row
-            # List of ordered criteria to match along the ancestors
+            # List of criteria to match along the ancestors path
             match_ancestor_list:
             -   element_types:  # Any paragraph element, e.g. TextRun
                 -   "ParagraphElement"
@@ -227,6 +227,12 @@ transformations:
                         # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
+            -   # Mode for skipping ancestors at this point in the list.
+                skip_ancestors: "exactly"  # Require exactly skip_count ancestor in between
+                    # skip_ancestors: "at_least"  # Allow skip_count or more ancestors in between
+                    # skip_ancestors: "any"  # Allow any number of ancestors in between
+                # Number of ancestors to skip (depending on mode).
+                skip_count: 1
             # Criteria to match any descendent of the current element.
             match_descendent:
                 element_types:  # Any paragraph element, e.g. TextRun

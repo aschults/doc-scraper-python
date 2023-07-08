@@ -48,9 +48,11 @@ transformations:
       required_tag_sets:
       - { bold: Y }
     match_ancestor_list:
+    -   skip_ancestors: any
     -   element_types:  [ Section ]
         required_tag_sets:
         - { section: with_prefix }
+    -   skip_ancestors: any
     variables:
       text:
         section_heading_only: True

@@ -9,6 +9,7 @@ from typing import (
     cast,
     Mapping,
     Tuple,
+    List,
 )
 import unittest
 import dataclasses
@@ -18,6 +19,10 @@ from parameterized import parameterized  # type:ignore
 from doc_scraper.basic_transforms import tags_relation
 from doc_scraper.basic_transforms import tags_basic
 from doc_scraper import doc_struct
+
+SINGLE_LINE_PARAGRAPH = doc_struct.Paragraph(
+    tags={'id': '1'},
+    elements=[doc_struct.Chip(tags={'id': '2'}, text='here')])
 
 SINGLE_LINE_TREE = doc_struct.Section(
     tags={'id': '1'},
@@ -40,6 +45,22 @@ SINGLE_LINE_TREE2 = doc_struct.Section(
                 doc_struct.TextLine(
                     elements=[doc_struct.Chip(tags={'id': '3'}, text='here')])
             ]),
+    ])
+
+SINGLE_LINE_TREE3 = doc_struct.Section(
+    tags={'id': '1'},
+    heading=None,
+    content=[
+        doc_struct.BulletItem(
+            tags={'id': '2'},
+            list_type='ul',
+            elements=[],
+            nested=[
+                doc_struct.BulletItem(
+                    tags={'id': '3'},
+                    list_type='ul',
+                    elements=[doc_struct.Chip(tags={'id': '4'}, text='here')]),
+            ])
     ])
 
 DOUBLE_X_DOUBLE_TREE = doc_struct.Section(
@@ -127,19 +148,82 @@ def _tag_type_descendent(
 
 
 def _tag_type_ancestor(
-    *element_type: type[doc_struct.Element],
+    *element_type: type[doc_struct.Element] | int,
     position: tags_relation.PositionMatchConfig = tags_relation.
     PositionMatchConfig()
 ) -> tags_relation.RelativeTaggingConfig:
+    ancestor_matches: List[tags_relation.PositionMatchConfig |
+                           tags_relation.MatchListGapConfig] = []
+    for item in element_type:
+        if isinstance(item, type):
+            ancestor_matches.append(
+                tags_relation.PositionMatchConfig(
+                    element_types=tags_basic.TypeMatcher(item)))
+        else:
+            if item == 0:
+                mode = 'any'
+            elif item > 0:
+                mode = 'exactly'
+            else:
+                mode = 'at_least'
+                item = -item
+            ancestor_matches.append(
+                tags_relation.MatchListGapConfig(skip_ancestors=mode,
+                                                 skip_count=item))
     return tags_relation.RelativeTaggingConfig(
-        match_ancestor_list=[
-            tags_relation.PositionMatchConfig(
-                element_types=tags_basic.TypeMatcher(element))
-            for element in element_type
-        ],
+        match_ancestor_list=ancestor_matches,
         match_element=position,
         tags=tags_basic.TagUpdateConfig(add={'x': '1'}),
     )
+
+
+def _make_gap(skip_ancestors: tags_relation.SkipModeType,
+              skip_count: int = 0) -> tags_relation.MatchListGapConfig:
+    return tags_relation.MatchListGapConfig(skip_ancestors=skip_ancestors,
+                                            skip_count=skip_count)
+
+
+class TestMatchListGapConfig(unittest.TestCase):
+    """Test the Ancestor List Gap class."""
+
+    def test_construction(self):
+        """Test correct construction."""
+        self.assertTrue(
+            tags_relation.MatchListGapConfig(
+                skip_ancestors='any',).is_open_length,)
+        self.assertTrue(_make_gap('at_least', 2).is_open_length,)
+        self.assertFalse(_make_gap('exactly', 2).is_open_length,)
+
+        self.assertRaisesRegex(ValueError, '.*non-zero.*',
+                               lambda: _make_gap('exactly'))
+
+        self.assertRaisesRegex(ValueError, '.*non-zero.*',
+                               lambda: _make_gap('at_least'))
+
+        self.assertRaisesRegex(ValueError, '.*No skip.count.*',
+                               lambda: _make_gap('any', 1))
+
+        self.assertRaisesRegex(ValueError, '.*Positive.*only.*',
+                               lambda: _make_gap('exactly', -1))
+
+    @parameterized.expand([  # type: ignore
+        (('exactly', 2), ('exactly', 1), ('exactly', 3)),
+        (('any', 0), ('exactly', 3), ('at_least', 3)),
+        (('any', 0), ('at_least', 3), ('at_least', 3)),
+        (('at_least', 1), ('at_least', 2), ('at_least', 3)),
+        (('exactly', 1), ('at_least', 2), ('at_least', 3)),
+    ])
+    def test_merge(
+        self,
+        arg1: Tuple[tags_relation.SkipModeType, int],
+        arg2: Tuple[tags_relation.SkipModeType, int],
+        expected_args: Tuple[tags_relation.SkipModeType, int],
+    ):
+        """Test merges of two gaps."""
+        self.assertEqual(_make_gap(*expected_args),
+                         _make_gap(*arg1).merge(_make_gap(*arg2)))
+        self.assertEqual(_make_gap(*expected_args),
+                         _make_gap(*arg2).merge(_make_gap(*arg1)))
 
 
 class TestRelationMatching(unittest.TestCase):
@@ -212,9 +296,219 @@ class TestRelationMatching(unittest.TestCase):
 
     @parameterized.expand([  # type: ignore
         (
-            'Single element match parent',
+            'Single element non match',
+            doc_struct.Chip(text='blah', tags={'id': '1'}),
+            _tag_type_ancestor(doc_struct.Section),
+            set(),
+        ),
+        (
+            'Single element exact match',
+            doc_struct.Chip(text='blah', tags={'id': '1'}),
+            _tag_type_ancestor(doc_struct.Chip),
+            set(),
+        ),
+        (
+            'Single element to many flexible needed',
+            doc_struct.Chip(text='blah', tags={'id': '1'}),
+            _tag_type_ancestor(1),
+            set(),
+        ),
+        (
+            'Single element match any match',
+            doc_struct.Chip(text='blah', tags={'id': '1'}),
+            _tag_type_ancestor(0),
+            set('1'),
+        ),
+        (
+            'Single element match no matchers',
+            doc_struct.Chip(text='blah', tags={'id': '1'}),
+            _tag_type_ancestor(),
+            set('1'),
+        ),
+        (
+            'single parent match',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(doc_struct.Paragraph),
+            {'2'},
+        ),
+        (
+            'single parent match any before',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(0, doc_struct.Paragraph),
+            {'2'},
+        ),
+        (
+            'single parent match any after',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(doc_struct.Paragraph, 0),
+            {'2'},
+        ),
+        (
+            'single parent match any both sides',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(0, doc_struct.Paragraph, 0),
+            {'2'},
+        ),
+        (
+            'single parent non-match bat type',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(doc_struct.Section),
+            set(),
+        ),
+        (
+            'single parent non-match multi before',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(1, doc_struct.Paragraph),
+            set(),
+        ),
+        (
+            'single parent non-match multi after',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(doc_struct.Paragraph, 1),
+            set(),
+        ),
+        (
+            'single parent non-match multi both sides',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(1, doc_struct.Paragraph, 1),
+            set(),
+        ),
+        (
+            'single parent non-match atleast before',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(-1, doc_struct.Paragraph),
+            set(),
+        ),
+        (
+            'single parent non-match atleast after',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(doc_struct.Paragraph, -1),
+            set(),
+        ),
+        (
+            'single parent non-match atleast both sides',
+            SINGLE_LINE_PARAGRAPH,
+            _tag_type_ancestor(-1, doc_struct.Paragraph, -1),
+            set(),
+        ),
+        (
+            'Two parent single element match full',
             SINGLE_LINE_TREE,
-            _tag_type_ancestor(doc_struct.BulletItem),
+            _tag_type_ancestor(doc_struct.Section, doc_struct.BulletItem),
+            {'3'},
+        ),
+        (
+            'Two parent single element full match any before',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(0, doc_struct.Section, doc_struct.BulletItem),
+            {'3'},
+        ),
+        (
+            'Two parent single element full match any after',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(doc_struct.Section, doc_struct.BulletItem, 0),
+            {'3'},
+        ),
+        (
+            'Two parent single element one match any before',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(0, doc_struct.BulletItem),
+            {'3'},
+        ),
+        (
+            'Two parent single element one match at least before',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(-1, doc_struct.BulletItem),
+            {'3'},
+        ),
+        (
+            'Two parent single element one match exact before',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(1, doc_struct.BulletItem),
+            {'3'},
+        ),
+        (
+            'Two parent single element non-match bad at least before',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(-2, doc_struct.BulletItem),
+            set(),
+        ),
+        (
+            'Two parent single element non-match bad exact before',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(2, doc_struct.BulletItem),
+            set(),
+        ),
+        (
+            'Two parent single element one match any after',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(doc_struct.Section, 0),
+            {'2', '3'},
+        ),
+        (
+            'Two parent single element one match multi after',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(doc_struct.Section, -1),
+            {'3'},
+        ),
+        (
+            'Two parent single element one match exact after',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(doc_struct.Section, 1),
+            {'3'},
+        ),
+        (
+            'Two parent single element non-match bad multi after',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(doc_struct.Section, -2),
+            set(),
+        ),
+        (
+            'Two parent single element non-match exact after',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(doc_struct.Section, 2),
+            set(),
+        ),
+        (
+            'Three parent single element match any middle',
+            SINGLE_LINE_TREE3,
+            _tag_type_ancestor(doc_struct.Section, 0, doc_struct.BulletItem),
+            {'3', '4'},
+        ),
+        (
+            'Three parent single element match any middle exact',
+            SINGLE_LINE_TREE3,
+            _tag_type_ancestor(doc_struct.Section, 1, doc_struct.BulletItem),
+            {'4'},
+        ),
+        (
+            'Three parent single element non-match any middle bad exact',
+            SINGLE_LINE_TREE3,
+            _tag_type_ancestor(doc_struct.Section, 2, doc_struct.BulletItem),
+            set(),
+        ),
+        (
+            'Three parent single element match any any at end',
+            SINGLE_LINE_TREE3,
+            _tag_type_ancestor(doc_struct.Section, doc_struct.BulletItem, 0),
+            {'3', '4'},
+        ),
+        (
+            'Three parent single element match exact any at end',
+            SINGLE_LINE_TREE3,
+            _tag_type_ancestor(doc_struct.Section, doc_struct.BulletItem, 1),
+            {'4'},
+        ),
+        (
+            'Three parent single element match exact any at end',
+            SINGLE_LINE_TREE3,
+            _tag_type_ancestor(doc_struct.Section, doc_struct.BulletItem, -1),
+            {'4'},
+        ),
+        (
+            'Single element match parent indef',
+            SINGLE_LINE_TREE,
+            _tag_type_ancestor(-1, doc_struct.BulletItem),
             {'3'},
         ),
         (
@@ -226,13 +520,13 @@ class TestRelationMatching(unittest.TestCase):
         (
             'Single element match parent constraint with gap',
             SINGLE_LINE_TREE2,
-            _tag_type_ancestor(doc_struct.Section, doc_struct.TextLine),
+            _tag_type_ancestor(doc_struct.Section, 0, doc_struct.TextLine),
             {'3'},
         ),
         (
             'Single element match 2 levels',
             SINGLE_LINE_TREE,
-            _tag_type_ancestor(doc_struct.Section),
+            _tag_type_ancestor(doc_struct.Section, 0),
             {'2', '3'},
         ),
         (
@@ -247,24 +541,13 @@ class TestRelationMatching(unittest.TestCase):
             _tag_type_ancestor(doc_struct.TextLine, doc_struct.Section),
             set(),
         ),
-        (
-            'Single element non match',
-            doc_struct.Chip(text='blah', tags={'id': '1'}),
-            _tag_type_ancestor(doc_struct.Section),
-            set(),
-        ),
-        (
-            'Single element match',
-            doc_struct.Chip(text='blah', tags={'id': '1'}),
-            _tag_type_ancestor(),
-            set('1'),
-        ),
     ])
     # pylint: disable=unused-argument
     def test_match_ancesors(self, summary: str, data: doc_struct.Element,
                             config: tags_relation.RelativeTaggingConfig,
                             expected: Set[str]):
         """Test the match_descendents function."""
+        print(summary)
         result = tags_basic.TaggingTransform(config)(data)
 
         print(result)
@@ -274,12 +557,60 @@ class TestRelationMatching(unittest.TestCase):
 
         self.assertEqual(expected, changed)
 
+    # pylint: disable=protected-access
+    def test_canonicalize_ancestor_matchers(self):
+        """Test canonicalizing (merging gaps) on ancestor lists."""
+        self.maxDiff = None
+        self.assertEqual(
+            _tag_type_ancestor(-1).match_ancestor_list,
+            _tag_type_ancestor(
+                0, 1)._canonicalize_ancestor_matches(),  # type: ignore
+        )
+
+        self.assertEqual(
+            _tag_type_ancestor(-1, doc_struct.Element).match_ancestor_list,
+            _tag_type_ancestor(0, 1, doc_struct.Element).
+            _canonicalize_ancestor_matches(),  # type: ignore
+        )
+
+        self.assertEqual(
+            _tag_type_ancestor(doc_struct.Element, -2).match_ancestor_list,
+            _tag_type_ancestor(
+                doc_struct.Element, -1,
+                1)._canonicalize_ancestor_matches(),  # type: ignore
+        )
+
+        self.assertEqual(
+            _tag_type_ancestor(doc_struct.Element, 4,
+                               doc_struct.Element).match_ancestor_list,
+            _tag_type_ancestor(doc_struct.Element, 1, 2, 1,
+                               doc_struct.Element).
+            _canonicalize_ancestor_matches(),  # type: ignore
+        )
+
+        self.assertEqual(
+            _tag_type_ancestor(doc_struct.Element, doc_struct.Element,
+                               4).match_ancestor_list,
+            _tag_type_ancestor(
+                doc_struct.Element, doc_struct.Element, 1, 2,
+                1)._canonicalize_ancestor_matches(),  # type: ignore
+        )
+
+        self.assertEqual(
+            _tag_type_ancestor(-4, doc_struct.Element,
+                               doc_struct.Element).match_ancestor_list,
+            _tag_type_ancestor(1, -2, 1, doc_struct.Element,
+                               doc_struct.Element).
+            _canonicalize_ancestor_matches(),  # type: ignore
+        )
+
     @parameterized.expand([  # type: ignore
         (
             'Match first col',
             DOUBLE_X_DOUBLE_TREE,
             _tag_type_ancestor(
                 doc_struct.Section,
+                0,
                 position=tags_relation.PositionMatchConfig(end_col=1)),
             {'3a', '3c'},
         ),
@@ -288,6 +619,7 @@ class TestRelationMatching(unittest.TestCase):
             DOUBLE_X_DOUBLE_TREE,
             _tag_type_ancestor(
                 doc_struct.Section,
+                0,
                 position=tags_relation.PositionMatchConfig(start_col=1)),
             {'3b', '3d'},
         ),
@@ -303,6 +635,7 @@ class TestRelationMatching(unittest.TestCase):
             'Match text line paragraph first col',
             PARAGRAPH_TEXT_LINE,
             _tag_type_ancestor(
+                0,
                 doc_struct.TextLine,
                 position=tags_relation.PositionMatchConfig(end_col=1)),
             {'3a', '3c'},
@@ -311,6 +644,7 @@ class TestRelationMatching(unittest.TestCase):
             'Match text line paragraph first row',
             PARAGRAPH_TEXT_LINE,
             _tag_type_ancestor(
+                0,
                 doc_struct.TextLine,
                 position=tags_relation.PositionMatchConfig(end_row=1)),
             {'3a', '3b'},
@@ -318,9 +652,12 @@ class TestRelationMatching(unittest.TestCase):
         (
             'Match text line paragraph top right',
             PARAGRAPH_TEXT_LINE,
-            _tag_type_ancestor(doc_struct.TextLine,
-                               position=tags_relation.PositionMatchConfig(
-                                   end_row=1, start_col=1)),
+            _tag_type_ancestor(
+                0,
+                doc_struct.TextLine,
+                position=tags_relation.PositionMatchConfig(end_row=1,
+                                                           start_col=1),
+            ),
             {'3b'},
         ),
         (
