@@ -441,7 +441,7 @@ def coord_grid_from_child(
     elif isinstance(element, doc_struct.DocContent):
         if isinstance(parent, doc_struct.Table):
             return _TableGridWrapper(parent)
-    raise ValueError(f'Unexpected parent {parent} for child {element}')
+    return None
 
 
 @dataclasses.dataclass(kw_only=True)

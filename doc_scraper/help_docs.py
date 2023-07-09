@@ -91,8 +91,7 @@ class TextConvertible():
         if isinstance(value, str):
             if not value:
                 return ''
-            value = value.replace('\\', '\\\\')
-            return f'"{value}"'
+            return f'{value!r}'
         if isinstance(value, dict):
             result = (self._dict_value_as_yaml(key, value2)
                       for key, value2 in cast(dict[str, Any], value.items()))

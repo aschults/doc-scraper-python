@@ -4,3 +4,4 @@ python-dateutil
 absl-py
 google-api-python-client-stubs
 dacite
+jq

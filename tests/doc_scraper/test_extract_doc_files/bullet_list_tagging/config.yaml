@@ -1,3 +1,22 @@
+#
+# Sample Documnent structure:
+#   ## Structures
+#   ## With prefix
+#   *   **Name:** Prefix First entry
+#       *   **Field1:** prefix value1
+#       *   **Field2:** prefix value2
+#   ## Non-Matching
+#   *   **Name:** BAD ENTRY
+#
+# Extracted data:
+#   {
+#       "name": "Prefix First entry"
+#       "details": {
+#           "field1": "prefix value1"
+#           "field2": "prefix value2"
+#       }
+#   }
+# 
 sources:
 - kind: doc_files
   config:
@@ -5,8 +24,30 @@ sources:
     - data.html
 transformations:
 - kind: nest_bullets       
+  # Restructure the doc so BulletItems with higher indention
+  # are in the BulletItem.nested field, i.e. located within
+  # the lower indention items.
 - kind: nest_sections
+  # Same for sections: Make sure that h2 is inside h1, along with
+  # all of the text that belongs to the h1. To accomodate this,
+  # Section elements with introduced with fields Section.heading, 
+  # containing the heading text, and Section.content for the
+  # text inside the heading (including potential sub-headings)
+- kind: drop_elements
+  # Drop all text runs that only contain spaces.
+  config:
+    match_element:
+      element_types: [TextRun]
+      element_expressions:
+      - expr: '{0.text}'
+        regex_match: "^\\s*$"
+      
+    
 - kind: tag_matching
+  # Collect the section text and reformat it so we can use it
+  # to match elements. Get the merged text from all Section.section
+  # fields and apply some regexes to turn "This   is \ta Title  " into
+  # "this_is_a_title"
   config:
     tags:
       add:
@@ -28,34 +69,61 @@ transformations:
         - regex: "\\s+"
           substitute: "_"
 - kind: tag_matching
+  # Based on the section titles, select only relevant.
   config:
     tags:
       add:
-        bold: "Y"
+        in_scope: "Y"
+    match_ancestor_list:
+    - skip_ancestors: any
+    - element_types: [Section]
+      required_tag_sets: [{section: "with_prefix"}]
+    - skip_ancestors: any
+- kind: tag_matching
+  # Tag all top level bullet list items
+  config:
+    tags:
+      add:
+        top_bullet: "Y"
     match_element:
       element_types:
-        - TextRun
+        - BulletItem
+    match_ancestor_list:
+    - skip_ancestors: any
+    - element_types: [BulletList]
+- kind: tag_matching
+  # Tag all top level bullet list items
+  config:
+    tags:
+      add:
+        second_bullet: "Y"
+    match_element:
+      element_types:
+        - BulletItem
+    match_ancestor_list:
+    - skip_ancestors: any
+    - element_types: [BulletItem]
+      required_tag_sets: [{ top_bullet: "Y" }]
+- kind: tag_matching
+  # Then mark all text in paragraphs that are bold 
+  # and at the start of a line and collect the text
+  # with susbstitutions to make it a label.
+  config:
+    tags:
+      add:
+        leading_bold: "Y"
+        label_text: "{text}"
+    match_element:
+      element_types:
+        - ParagraphElement
+      start_col: 0
       required_style_sets:
       - { font-weight: "700" }
-- kind: tag_matching
-  config:
-    tags:
-      add:
-        label: "{text}"
-    match_element:
-      element_types:
-        - TextRun
-      required_tag_sets:
-      - { bold: Y }
     match_ancestor_list:
-    -   skip_ancestors: any
-    -   element_types:  [ Section ]
-        required_tag_sets:
-        - { section: with_prefix }
-    -   skip_ancestors: any
+    - skip_ancestors: any
+    - element_types: [BulletItem]
     variables:
       text:
-        section_heading_only: True
         substitutions:
         - regex: "(.)"
           substitute: "\\1"
@@ -65,22 +133,41 @@ transformations:
         - regex: "[\\s:]+$"
           substitute: ""
 - kind: tag_matching
+  # Tag the label contents, i.e. all text behind the label. 
+  # Note: "ignore_errors" prevents the tag from being added
+  # when evaluation fails.
   config:
     tags:
       add:
-        for_label: "{prev_element.tags[label]}"
+        content_for_label: "{first.tags[label_text]}"
       ignore_errors: True
     match_element:
       element_types:
-        - TextRun
+        - ParagraphElement
+#      rejected_tags: { leading_bold: ".*" }
     variables:
-      prev_element:
+      first:
         element_at:
-          col: prev
+          col: first
 - kind: strip_elements
   config:
     remove_styles_re: ['.*']
     remove_style_rules_re: ['.*']
+- kind: extract_json
+  config:
+    extract_all:  '.. | select(.tags?.top_bullet) | select(.tags?.in_scope)'
+    validators:
+    - '.type == "BulletItem"'
+    render: '{"name" :$name_value[0], "details": ($details | from_entries)}'
+    nested:
+      name_value:
+        extract_all: '.elements[] | select(.tags.content_for_label)'
+        render: '.text'
+        validators:
+        - '.tags.content_for_label == "name"'
+      details:
+        extract_all: '.nested[] | .. | select(.tags?.content_for_label)'
+        render: '{"key": .tags.content_for_label, "value": .text }'
 outputs:
 - kind: stdout
 - kind: single_file

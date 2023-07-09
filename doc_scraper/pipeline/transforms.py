@@ -1,6 +1,7 @@
 """Classes and functions to allow building pipelines of transformations."""
 
 import logging
+from typing import Any, Callable
 
 from doc_scraper import doc_transform as transform_base
 
@@ -11,8 +12,7 @@ from doc_scraper.basic_transforms import tags_basic
 from doc_scraper.basic_transforms import tags_relation
 from doc_scraper.basic_transforms import elements_basics
 from doc_scraper.basic_transforms import paragraph_element_basic
-
-from doc_scraper import doc_struct
+from doc_scraper.basic_transforms import json_basic
 
 from . import generic
 
@@ -25,11 +25,11 @@ class ChainedTransformation():
     """Execute a sequence of transformations."""
 
     def __init__(self,
-                 *transforms: transform_base.TransformationFunction) -> None:
+                 *transforms: Callable[[Any], Any]) -> None:
         """Create an instance."""
         self.transforms = transforms
 
-    def __call__(self, element: doc_struct.Element) -> doc_struct.Element:
+    def __call__(self, element: Any) -> Any:
         """Execute transformations in sequence."""
         for index, transform in enumerate(self.transforms):
             element = transform(element)
@@ -39,12 +39,12 @@ class ChainedTransformation():
 
 
 class TransformBuilder(
-        generic.GenericBuilder[transform_base.TransformationFunction]):
+        generic.GenericBuilder[Callable[[Any], Any]]):
     """Build transformations based on string tags."""
 
     def create_chain(
         self, *config_data: TransformConfig
-    ) -> transform_base.TransformationFunction:
+    ) -> Callable[[Any], Any]:
         """Create a chained transformation.
 
         Args:
@@ -103,4 +103,10 @@ def get_default_builder() -> TransformBuilder:
         lambda config: paragraph_element_basic.RegexReplacerTransform(config),
         config_type=paragraph_element_basic.RegexReplacerConfig,
     )
+
+    default_builder.register(
+        'extract_json',
+        json_basic.build_json_extraction_transform
+    )
+
     return default_builder

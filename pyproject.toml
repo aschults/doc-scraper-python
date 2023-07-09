@@ -8,6 +8,7 @@ dependencies = [
     "absl-py",
     "google-api-python-client-stubs",
     "dacite",
+    "jq",
 ]
 authors = [
     {name = "Anton Schultschik", email = "aschults@gmx.net"},

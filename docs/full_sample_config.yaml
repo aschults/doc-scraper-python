@@ -9,8 +9,8 @@ sources:
         config:
             # Paths to local files.
             doc_filenames:
-            -   "/path/to/a"
-            -   "/path/to/b"
+            -   '/path/to/a'
+            -   '/path/to/b'
         
     # Load from Google Drive API as exported HTML.
     -   kind: google_doc_html
@@ -18,10 +18,10 @@ sources:
         config:
             # Document IDs (part of the URL) to download.
             doc_ids:
-            -   "1HZUlXXXXXX_SAMPLE1_XXXXXXIAQOa-xx9XxXx-xXxx"
-            -   "1HZUlXXXXXX_SAMPLE2_XXXXXXIAQOa-xx9XxXx-xXxx"
+            -   '1HZUlXXXXXX_SAMPLE1_XXXXXXIAQOa-xx9XxXx-xXxx'
+            -   '1HZUlXXXXXX_SAMPLE2_XXXXXXIAQOa-xx9XxXx-xXxx'
             # Google account username (as email), incl. service accounts.
-            username: "someone@gmail.com"
+            username: 'someone@gmail.com'
         
     
 
@@ -33,10 +33,10 @@ transformations:
             # Criteria to match elements for tagging.
             match_element:
                 element_types:  # Any paragraph element, e.g. TextRun
-                -   "ParagraphElement"
+                -   'ParagraphElement'
                     # element_types:  # Specifically only Chips and BulletItems
-                    # -   "Chips"
-                    # -   "BulletItem"
+                    # -   'Chips'
+                    # -   'BulletItem'
                 # List of list of tags, all required for the match to happen.
                 required_tag_sets:
                 -   A: .*
@@ -47,20 +47,20 @@ transformations:
                     X: .+
                 # Styles required for the tag to match. All need to match.
                 required_style_sets:
-                -   font-size: "20pt"
-                    font-weight: "bold"
-                -   color: "red"
+                -   font-size: '20pt'
+                    font-weight: 'bold'
+                -   color: 'red'
                 # Styles that prevent matching. Only one needs to match.
                 rejected_styles:
-                    font-weight: "400"
+                    font-weight: '400'
                 # If set to True, quotes in style values are removed.
                 skip_style_quotes: True  # Default
                 # The Python regex to match with element's text representation.
-                aggregated_text_regex: "some text\\s+in doc"
+                aggregated_text_regex: 'some text\\s+in doc'
                 # List of expressions to interpolate and match.
                 element_expressions:
-                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
-                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                -   expr: '{0.text}--{0.url}'  # Element text, followed by url from element(0)
+                        # expr: '{0.tags[tag1]}'  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
                 # Horitzontal start of matched elements. Unbound if not set.
@@ -78,10 +78,10 @@ transformations:
             # List of criteria to match along the ancestors path
             match_ancestor_list:
             -   element_types:  # Any paragraph element, e.g. TextRun
-                -   "ParagraphElement"
+                -   'ParagraphElement'
                     # element_types:  # Specifically only Chips and BulletItems
-                    # -   "Chips"
-                    # -   "BulletItem"
+                    # -   'Chips'
+                    # -   'BulletItem'
                 # List of list of tags, all required for the match to happen.
                 required_tag_sets:
                 -   A: .*
@@ -92,35 +92,35 @@ transformations:
                     X: .+
                 # Styles required for the tag to match. All need to match.
                 required_style_sets:
-                -   font-size: "20pt"
-                    font-weight: "bold"
-                -   color: "red"
+                -   font-size: '20pt'
+                    font-weight: 'bold'
+                -   color: 'red'
                 # Styles that prevent matching. Only one needs to match.
                 rejected_styles:
-                    font-weight: "400"
+                    font-weight: '400'
                 # If set to True, quotes in style values are removed.
                 skip_style_quotes: True  # Default
                 # The Python regex to match with element's text representation.
-                aggregated_text_regex: "some text\\s+in doc"
+                aggregated_text_regex: 'some text\\s+in doc'
                 # List of expressions to interpolate and match.
                 element_expressions:
-                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
-                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                -   expr: '{0.text}--{0.url}'  # Element text, followed by url from element(0)
+                        # expr: '{0.tags[tag1]}'  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
             -   # Mode for skipping ancestors at this point in the list.
-                skip_ancestors: "exactly"  # Require exactly skip_count ancestor in between
-                    # skip_ancestors: "at_least"  # Allow skip_count or more ancestors in between
-                    # skip_ancestors: "any"  # Allow any number of ancestors in between
+                skip_ancestors: 'exactly'  # Require exactly skip_count ancestor in between
+                    # skip_ancestors: 'at_least'  # Allow skip_count or more ancestors in between
+                    # skip_ancestors: 'any'  # Allow any number of ancestors in between
                 # Number of ancestors to skip (depending on mode).
                 skip_count: 1
             # Criteria to match any descendent of the current element.
             match_descendent:
                 element_types:  # Any paragraph element, e.g. TextRun
-                -   "ParagraphElement"
+                -   'ParagraphElement'
                     # element_types:  # Specifically only Chips and BulletItems
-                    # -   "Chips"
-                    # -   "BulletItem"
+                    # -   'Chips'
+                    # -   'BulletItem'
                 # List of list of tags, all required for the match to happen.
                 required_tag_sets:
                 -   A: .*
@@ -131,22 +131,49 @@ transformations:
                     X: .+
                 # Styles required for the tag to match. All need to match.
                 required_style_sets:
-                -   font-size: "20pt"
-                    font-weight: "bold"
-                -   color: "red"
+                -   font-size: '20pt'
+                    font-weight: 'bold'
+                -   color: 'red'
                 # Styles that prevent matching. Only one needs to match.
                 rejected_styles:
-                    font-weight: "400"
+                    font-weight: '400'
                 # If set to True, quotes in style values are removed.
                 skip_style_quotes: True  # Default
                 # The Python regex to match with element's text representation.
-                aggregated_text_regex: "some text\\s+in doc"
+                aggregated_text_regex: 'some text\\s+in doc'
                 # List of expressions to interpolate and match.
                 element_expressions:
-                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
-                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                -   expr: '{0.text}--{0.url}'  # Element text, followed by url from element(0)
+                        # expr: '{0.tags[tag1]}'  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
+        
+    -   kind: extract_json
+        # Extract and render a list of items from a document.
+        config:
+            # Prepended to the query, for common functions.
+            preamble: 'def plus_1: . + 1;'
+                # preamble: 'def constant: 123;'
+            # Query to extract all items to be processed at this level.
+            extract_all: '.. | select(.type? == "Paragraph")'  # Match all paragraphs
+                # extract_all: '.. | select(.tags?.label)'  # Match all with tag "label"
+            # Applied to each extracted item before output into a list.
+            render: '{"the_text": .text?, "tag": $nested_tag, "nested": $nested_types}'
+            # Only extracted items matching all filters remain.
+            filters:
+            -   '.tags?.label == "some_value"'
+            -   '.text | test("\\d+")'
+            # Only items matching all filters, plus warning on log.
+            validators:
+            -   '.type'
+            # Extract nested items and use as variables when rendering
+            nested:
+                nested_types:
+                    extract_all: '.elements| select(.type =="Paragraph")'
+                    render: '.tags?.label'
+                nested_tag:
+                    extract_all: '.elements|.tags?.label'
+                    render: '"_"+.+"_"'
         
     # Merge paragraph items by matching tags.
     -   kind: merge_by_tag
@@ -155,10 +182,10 @@ transformations:
             merge_as_text_run: False  # Default
             match_element:
                 element_types:  # Any paragraph element, e.g. TextRun
-                -   "ParagraphElement"
+                -   'ParagraphElement'
                     # element_types:  # Specifically only Chips and BulletItems
-                    # -   "Chips"
-                    # -   "BulletItem"
+                    # -   'Chips'
+                    # -   'BulletItem'
                 # List of list of tags, all required for the match to happen.
                 required_tag_sets:
                 -   A: .*
@@ -169,20 +196,20 @@ transformations:
                     X: .+
                 # Styles required for the tag to match. All need to match.
                 required_style_sets:
-                -   font-size: "20pt"
-                    font-weight: "bold"
-                -   color: "red"
+                -   font-size: '20pt'
+                    font-weight: 'bold'
+                -   color: 'red'
                 # Styles that prevent matching. Only one needs to match.
                 rejected_styles:
-                    font-weight: "400"
+                    font-weight: '400'
                 # If set to True, quotes in style values are removed.
                 skip_style_quotes: True  # Default
                 # The Python regex to match with element's text representation.
-                aggregated_text_regex: "some text\\s+in doc"
+                aggregated_text_regex: 'some text\\s+in doc'
                 # List of expressions to interpolate and match.
                 element_expressions:
-                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
-                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                -   expr: '{0.text}--{0.url}'  # Element text, followed by url from element(0)
+                        # expr: '{0.tags[tag1]}'  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
         
@@ -198,18 +225,18 @@ transformations:
             # List of regex-based replacements.
             substitutions:
             -   # The Python regex to match.
-                regex: "\\s+"  # All spaces (including newline)
+                regex: '\\s+'  # All spaces (including newline)
                 # The replacement text.
-                substitute: " "  # Replace with one space
+                substitute: ' '  # Replace with one space
                 # Additional operation to apply.
-                operation: "lower"  # Make all lower case
+                operation: 'lower'  # Make all lower case
             # Constraints required for the substitution to happen.
             match:
                 element_types:  # Any paragraph element, e.g. TextRun
-                -   "ParagraphElement"
+                -   'ParagraphElement'
                     # element_types:  # Specifically only Chips and BulletItems
-                    # -   "Chips"
-                    # -   "BulletItem"
+                    # -   'Chips'
+                    # -   'BulletItem'
                 # List of list of tags, all required for the match to happen.
                 required_tag_sets:
                 -   A: .*
@@ -220,20 +247,20 @@ transformations:
                     X: .+
                 # Styles required for the tag to match. All need to match.
                 required_style_sets:
-                -   font-size: "20pt"
-                    font-weight: "bold"
-                -   color: "red"
+                -   font-size: '20pt'
+                    font-weight: 'bold'
+                -   color: 'red'
                 # Styles that prevent matching. Only one needs to match.
                 rejected_styles:
-                    font-weight: "400"
+                    font-weight: '400'
                 # If set to True, quotes in style values are removed.
                 skip_style_quotes: True  # Default
                 # The Python regex to match with element's text representation.
-                aggregated_text_regex: "some text\\s+in doc"
+                aggregated_text_regex: 'some text\\s+in doc'
                 # List of expressions to interpolate and match.
                 element_expressions:
-                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
-                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                -   expr: '{0.text}--{0.url}'  # Element text, followed by url from element(0)
+                        # expr: '{0.tags[tag1]}'  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
         
@@ -243,15 +270,15 @@ transformations:
         config:
             # List for regexes. Matching keys in `attribs` are removed.
             remove_attrs_re:  # Remove all starting with _ or X_
-            -   "_.*"
-            -   "X_.*"
+            -   '_.*'
+            -   'X_.*'
             # List for regexes. Matching keys in `styles` are removed.
             remove_styles_re:  # Remove all styles with "font" in the key
-            -   ".*font.*"
+            -   '.*font.*'
             # List for regexes. Matching keys in `style_rules are removed from SharedData.
             remove_style_rules_re:  # Remove all starting ".lst" or "ul."
-            -   "\\.lst.*"
-            -   "ul\\..*"
+            -   '\\.lst.*'
+            -   'ul\\..*'
         
     # Add tags to any element if they match the criteria.
     -   kind: tag_matching
@@ -261,22 +288,22 @@ transformations:
             tags:
                 # A list of tags to add.
                 add:
-                    tag1: "val1"
-                    tag2: "val2"
+                    tag1: 'val1'
+                    tag2: 'val2'
                 # A list of tags to remove. Use "*" to clear all.
                 remove:  # Add two tags
-                -   "tag3"
-                -   "tag4"
+                -   'tag3'
+                -   'tag4'
                     # remove:  # Clear tags before adding
-                    # -   "*"
+                    # -   '*'
                 ignore_errors: False  # Default
             # Criteria to match elements for tagging.
             match_element:
                 element_types:  # Any paragraph element, e.g. TextRun
-                -   "ParagraphElement"
+                -   'ParagraphElement'
                     # element_types:  # Specifically only Chips and BulletItems
-                    # -   "Chips"
-                    # -   "BulletItem"
+                    # -   'Chips'
+                    # -   'BulletItem'
                 # List of list of tags, all required for the match to happen.
                 required_tag_sets:
                 -   A: .*
@@ -287,20 +314,20 @@ transformations:
                     X: .+
                 # Styles required for the tag to match. All need to match.
                 required_style_sets:
-                -   font-size: "20pt"
-                    font-weight: "bold"
-                -   color: "red"
+                -   font-size: '20pt'
+                    font-weight: 'bold'
+                -   color: 'red'
                 # Styles that prevent matching. Only one needs to match.
                 rejected_styles:
-                    font-weight: "400"
+                    font-weight: '400'
                 # If set to True, quotes in style values are removed.
                 skip_style_quotes: True  # Default
                 # The Python regex to match with element's text representation.
-                aggregated_text_regex: "some text\\s+in doc"
+                aggregated_text_regex: 'some text\\s+in doc'
                 # List of expressions to interpolate and match.
                 element_expressions:
-                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
-                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                -   expr: '{0.text}--{0.url}'  # Element text, followed by url from element(0)
+                        # expr: '{0.tags[tag1]}'  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
                 # Horitzontal start of matched elements. Unbound if not set.
@@ -318,10 +345,10 @@ transformations:
             # List of criteria to match along the ancestors path
             match_ancestor_list:
             -   element_types:  # Any paragraph element, e.g. TextRun
-                -   "ParagraphElement"
+                -   'ParagraphElement'
                     # element_types:  # Specifically only Chips and BulletItems
-                    # -   "Chips"
-                    # -   "BulletItem"
+                    # -   'Chips'
+                    # -   'BulletItem'
                 # List of list of tags, all required for the match to happen.
                 required_tag_sets:
                 -   A: .*
@@ -332,35 +359,35 @@ transformations:
                     X: .+
                 # Styles required for the tag to match. All need to match.
                 required_style_sets:
-                -   font-size: "20pt"
-                    font-weight: "bold"
-                -   color: "red"
+                -   font-size: '20pt'
+                    font-weight: 'bold'
+                -   color: 'red'
                 # Styles that prevent matching. Only one needs to match.
                 rejected_styles:
-                    font-weight: "400"
+                    font-weight: '400'
                 # If set to True, quotes in style values are removed.
                 skip_style_quotes: True  # Default
                 # The Python regex to match with element's text representation.
-                aggregated_text_regex: "some text\\s+in doc"
+                aggregated_text_regex: 'some text\\s+in doc'
                 # List of expressions to interpolate and match.
                 element_expressions:
-                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
-                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                -   expr: '{0.text}--{0.url}'  # Element text, followed by url from element(0)
+                        # expr: '{0.tags[tag1]}'  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
             -   # Mode for skipping ancestors at this point in the list.
-                skip_ancestors: "exactly"  # Require exactly skip_count ancestor in between
-                    # skip_ancestors: "at_least"  # Allow skip_count or more ancestors in between
-                    # skip_ancestors: "any"  # Allow any number of ancestors in between
+                skip_ancestors: 'exactly'  # Require exactly skip_count ancestor in between
+                    # skip_ancestors: 'at_least'  # Allow skip_count or more ancestors in between
+                    # skip_ancestors: 'any'  # Allow any number of ancestors in between
                 # Number of ancestors to skip (depending on mode).
                 skip_count: 1
             # Criteria to match any descendent of the current element.
             match_descendent:
                 element_types:  # Any paragraph element, e.g. TextRun
-                -   "ParagraphElement"
+                -   'ParagraphElement'
                     # element_types:  # Specifically only Chips and BulletItems
-                    # -   "Chips"
-                    # -   "BulletItem"
+                    # -   'Chips'
+                    # -   'BulletItem'
                 # List of list of tags, all required for the match to happen.
                 required_tag_sets:
                 -   A: .*
@@ -371,29 +398,29 @@ transformations:
                     X: .+
                 # Styles required for the tag to match. All need to match.
                 required_style_sets:
-                -   font-size: "20pt"
-                    font-weight: "bold"
-                -   color: "red"
+                -   font-size: '20pt'
+                    font-weight: 'bold'
+                -   color: 'red'
                 # Styles that prevent matching. Only one needs to match.
                 rejected_styles:
-                    font-weight: "400"
+                    font-weight: '400'
                 # If set to True, quotes in style values are removed.
                 skip_style_quotes: True  # Default
                 # The Python regex to match with element's text representation.
-                aggregated_text_regex: "some text\\s+in doc"
+                aggregated_text_regex: 'some text\\s+in doc'
                 # List of expressions to interpolate and match.
                 element_expressions:
-                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
-                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                -   expr: '{0.text}--{0.url}'  # Element text, followed by url from element(0)
+                        # expr: '{0.tags[tag1]}'  # Grab value of tag "tag1"
                     regex_match: text---http.*
                     ignore_key_errors: False  # Default
             # Variables to provide for the interpolation of tags.
             variables:
                 ancestor_path:
                     # Template to use to render each level's value.
-                    level_value: "0.tags[heading]"  # tag "heading" of each level
+                    level_value: '0.tags[heading]'  # tag "heading" of each level
                     # Separator between each level_value
-                    separator: "/"  # Default
+                    separator: '/'  # Default
                     # Level starting from 0 at the root to start the path.
                     level_start: 1  # start at the 2nd level
                     # Level starting from 0 at the root to end the path.
@@ -415,7 +442,7 @@ outputs:
         # Configuration to write to a single file, concatenated.
         config:
             # Provide a filename to write to. Default: stdout
-            output_file: "/tmp/file.json"
+            output_file: '/tmp/file.json'
         
     # Write to stdout, with separators between.
     -   kind: stdout
@@ -428,7 +455,7 @@ outputs:
             # 
             # All attributes in Document.attrs are supported,
             # and "i" (as file counter)
-            output_path_template: "file{i}.json"  # Suffix every file with a number
-                # output_path_template: "filename_{blah}.json"  # Use attribute "blah" from attrs.
+            output_path_template: 'file{i}.json'  # Suffix every file with a number
+                # output_path_template: 'filename_{blah}.json'  # Use attribute "blah" from attrs.
         
     

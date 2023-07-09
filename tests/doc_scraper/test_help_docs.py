@@ -71,7 +71,7 @@ class TextConvertibleTest(unittest.TestCase):
             'Simple string',
             'xxx',
             '',
-            'thekey: "xxx"',
+            'thekey: \'xxx\'',
         ),
         (
             'Simple None',
@@ -118,7 +118,7 @@ class TextConvertibleTest(unittest.TestCase):
                 'e': 'f'
             }],
             '',
-            'thekey:\n-   a: "b"\n    c: "d"\n-   e: "f"',
+            'thekey:\n-   a: \'b\'\n    c: \'d\'\n-   e: \'f\'',
         ),
         (
             'Dict of dict',
@@ -130,14 +130,15 @@ class TextConvertibleTest(unittest.TestCase):
                 }
             },
             '',
-            'thekey:\n    a: "b"\n    x:\n        c: "d"\n        e: "f"',
+            'thekey:\n    a: \'b\'\n    x:\n        c: \'d\'\n        ' +
+            'e: \'f\'',
         ),
         (
             'Class based',
             help_docs.ClassBasedSample(SampleConfig),
             '',
             'thekey:\n    # thehelptext\n    a_field: 111  # text1\n' +
-            '        # a_field: 222\n' + '        # a_field: "value3"',
+            '        # a_field: 222\n' + '        # a_field: \'value3\'',
         ),
     ])
     # pylint: disable=unused-argument
@@ -213,7 +214,7 @@ class AsYamlTest(unittest.TestCase):
         conv = help_docs.TextConvertible()
 
         self.assertEqual(
-            '"string"',
+            '\'string\'',
             conv._values_as_yaml('string'),  # type: ignore
         )
         self.assertEqual(
@@ -237,7 +238,7 @@ class AsYamlTest(unittest.TestCase):
         expected = '''
         # helptext
         thename: 1234  # case1
-            # thename: "stringarg"  # case2'''
+            # thename: 'stringarg'  # case2'''
         self.assert_equal_without_indent(expected, doc.as_yaml())
 
     def test_config_as_yaml(self):
@@ -284,7 +285,7 @@ class AsYamlTest(unittest.TestCase):
             # text2
             config:
                 # c
-                a: "VAL"  # txt
+                a: 'VAL'  # txt
         {spc}
         '''
         self.assert_equal_without_indent(expected, doc.as_yaml())

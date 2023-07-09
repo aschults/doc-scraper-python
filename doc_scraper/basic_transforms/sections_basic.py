@@ -51,7 +51,6 @@ def _structure_doc(
             if item.level == level:
                 # A heading we need to react to.
                 new_items = items[index + 1:last_heading_index]
-                print('aaaaaa', last_heading_index, index, new_items)
                 level_sections.append(
                     _structure_doc(level + 1, item, new_items))
                 last_heading_index = index
