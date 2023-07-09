@@ -19,10 +19,11 @@ transformations:
         font-weight: bold
 - kind: merge_by_tag
   config: 
-    acceptable_tag_sets: 
-    - ['a']
-    - ['b', 'highlight']
-    rejeding_tags: ['xx']
+    match_element:
+      required_tag_sets: 
+      - {'a': '.*' }
+      - {'b': '.*', 'highlight': 'Y'}
+      rejected_tags: {'xx': 'Y'}
 - kind: strip_elements
   config:
     remove_style_rules_re: ['.*']

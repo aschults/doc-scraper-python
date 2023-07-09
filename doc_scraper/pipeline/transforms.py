@@ -84,8 +84,7 @@ def get_default_builder() -> TransformBuilder:
         'tag_matching',
         tags_basic.TaggingTransform.from_config,
         help_doc='Add tags to any element if they match the criteria.',
-        config_type=tags_relation.RelativeTaggingConfig
-    )
+        config_type=tags_relation.RelativeTaggingConfig)
 
     default_builder.register(
         'strip_elements',
@@ -94,6 +93,11 @@ def get_default_builder() -> TransformBuilder:
         help_doc='Remove unwanted keys from attrs, style ' +
         'and ShardData.style_rules')
 
+    default_builder.register(
+        'drop_elements',
+        lambda config: elements_basics.DropElementsTransform(config),
+        config_type=elements_basics.DropElementsConfig,
+    )
     default_builder.register(
         'regex_replace',
         lambda config: paragraph_element_basic.RegexReplacerTransform(config),

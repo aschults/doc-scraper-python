@@ -5,6 +5,7 @@ import dataclasses
 from doc_scraper import doc_struct
 from doc_scraper import doc_transform
 from doc_scraper.basic_transforms import tags_basic
+from doc_scraper.basic_transforms import tags_relation
 
 _V = TypeVar('_V')
 
@@ -143,3 +144,69 @@ class StripElementsTransform(doc_transform.Transformation):
 
         return super()._transform_shared_data(
             dataclasses.replace(shared_data, style_rules=new_rules))
+
+
+class DropElementsConfig(tags_relation.RelationalMatchingConfig):
+    """Select elements to be dropped from the document."""
+
+
+class DropElementsTransform(doc_transform.Transformation):
+    """Transformation to remove unwanted elements, except for table cells."""
+
+    def __init__(
+            self,
+            config: DropElementsConfig,
+            context: Optional[doc_transform.TransformationContext] = None
+    ) -> None:
+        """Create an instance."""
+        super().__init__(context)
+        self.config = config
+
+    def _transform_doc_content_element(
+        self, element_number: int, element: doc_struct.StructuralElement
+    ) -> Optional[doc_struct.StructuralElement]:
+        if self.config.is_matching(element, self.context.path_objects):
+            return None
+        return super()._transform_doc_content_element(element_number, element)
+
+    def _transform_bullet_list_item(
+            self, item_number: int,
+            item: doc_struct.BulletItem) -> Optional[doc_struct.BulletItem]:
+        if self.config.is_matching(item, self.context.path_objects):
+            return None
+        return super()._transform_bullet_list_item(item_number, item)
+
+    def _transform_nested_bullet_item(
+            self, item_number: int,
+            item: doc_struct.BulletItem) -> Optional[doc_struct.BulletItem]:
+        if self.config.is_matching(item, self.context.path_objects):
+            return None
+        return super()._transform_nested_bullet_item(item_number, item)
+
+    def _transform_paragraph_elements_item(
+        self, location: int, element: doc_struct.ParagraphElement
+    ) -> Optional[doc_struct.ParagraphElement]:
+        if self.config.is_matching(element, self.context.path_objects):
+            return None
+        return super()._transform_paragraph_elements_item(location, element)
+
+    def _transform_section_content_item(
+        self, index: int, item: doc_struct.StructuralElement
+    ) -> Optional[doc_struct.StructuralElement]:
+        if self.config.is_matching(item, self.context.path_objects):
+            return None
+        return super()._transform_section_content_item(index, item)
+
+    def _transform_text_line_elements_item(
+        self, index: int, item: doc_struct.ParagraphElement
+    ) -> Optional[doc_struct.ParagraphElement]:
+        if self.config.is_matching(item, self.context.path_objects):
+            return None
+        return super()._transform_text_line_elements_item(index, item)
+
+    def _transform_note_item(
+            self, index: int,
+            paragraph: doc_struct.Paragraph) -> Optional[doc_struct.Paragraph]:
+        if self.config.is_matching(paragraph, self.context.path_objects):
+            return None
+        return super()._transform_note_item(index, paragraph)

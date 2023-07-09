@@ -27,6 +27,127 @@ sources:
 
 # Steps executed in order to modify the documents
 transformations:
+    -   kind: drop_elements
+        # Select elements to be dropped from the document.
+        config:
+            # Criteria to match elements for tagging.
+            match_element:
+                element_types:  # Any paragraph element, e.g. TextRun
+                -   "ParagraphElement"
+                    # element_types:  # Specifically only Chips and BulletItems
+                    # -   "Chips"
+                    # -   "BulletItem"
+                # List of list of tags, all required for the match to happen.
+                required_tag_sets:
+                -   A: .*
+                    B:
+                -   C: .*
+                # Tags that stop any match if present.
+                rejected_tags:  # No Elements tagged with X will be matched.
+                    X: .+
+                # Styles required for the tag to match. All need to match.
+                required_style_sets:
+                -   font-size: "20pt"
+                    font-weight: "bold"
+                -   color: "red"
+                # Styles that prevent matching. Only one needs to match.
+                rejected_styles:
+                    font-weight: "400"
+                # If set to True, quotes in style values are removed.
+                skip_style_quotes: True  # Default
+                # The Python regex to match with element's text representation.
+                aggregated_text_regex: "some text\\s+in doc"
+                # List of expressions to interpolate and match.
+                element_expressions:
+                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
+                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                    regex_match: text---http.*
+                    ignore_key_errors: False  # Default
+                # Horitzontal start of matched elements. Unbound if not set.
+                start_col: 0  # From first col
+                    # start_col: -1  # Last column
+                # Horitzontal end of matched elements. Unbound if not set.
+                end_col: 4  # Until 3rd col
+                    # end_col: 1  # First column
+                # Vertical start of matched elements. Unbound if not set.
+                start_row: 0  # From first row
+                    # start_row: -1  # Last row
+                # Vertical end of matched elements. Unbound if not set.
+                end_row: 4  # Until 3rd row
+                    # end_row: 1  # First row
+            # List of criteria to match along the ancestors path
+            match_ancestor_list:
+            -   element_types:  # Any paragraph element, e.g. TextRun
+                -   "ParagraphElement"
+                    # element_types:  # Specifically only Chips and BulletItems
+                    # -   "Chips"
+                    # -   "BulletItem"
+                # List of list of tags, all required for the match to happen.
+                required_tag_sets:
+                -   A: .*
+                    B:
+                -   C: .*
+                # Tags that stop any match if present.
+                rejected_tags:  # No Elements tagged with X will be matched.
+                    X: .+
+                # Styles required for the tag to match. All need to match.
+                required_style_sets:
+                -   font-size: "20pt"
+                    font-weight: "bold"
+                -   color: "red"
+                # Styles that prevent matching. Only one needs to match.
+                rejected_styles:
+                    font-weight: "400"
+                # If set to True, quotes in style values are removed.
+                skip_style_quotes: True  # Default
+                # The Python regex to match with element's text representation.
+                aggregated_text_regex: "some text\\s+in doc"
+                # List of expressions to interpolate and match.
+                element_expressions:
+                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
+                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                    regex_match: text---http.*
+                    ignore_key_errors: False  # Default
+            -   # Mode for skipping ancestors at this point in the list.
+                skip_ancestors: "exactly"  # Require exactly skip_count ancestor in between
+                    # skip_ancestors: "at_least"  # Allow skip_count or more ancestors in between
+                    # skip_ancestors: "any"  # Allow any number of ancestors in between
+                # Number of ancestors to skip (depending on mode).
+                skip_count: 1
+            # Criteria to match any descendent of the current element.
+            match_descendent:
+                element_types:  # Any paragraph element, e.g. TextRun
+                -   "ParagraphElement"
+                    # element_types:  # Specifically only Chips and BulletItems
+                    # -   "Chips"
+                    # -   "BulletItem"
+                # List of list of tags, all required for the match to happen.
+                required_tag_sets:
+                -   A: .*
+                    B:
+                -   C: .*
+                # Tags that stop any match if present.
+                rejected_tags:  # No Elements tagged with X will be matched.
+                    X: .+
+                # Styles required for the tag to match. All need to match.
+                required_style_sets:
+                -   font-size: "20pt"
+                    font-weight: "bold"
+                -   color: "red"
+                # Styles that prevent matching. Only one needs to match.
+                rejected_styles:
+                    font-weight: "400"
+                # If set to True, quotes in style values are removed.
+                skip_style_quotes: True  # Default
+                # The Python regex to match with element's text representation.
+                aggregated_text_regex: "some text\\s+in doc"
+                # List of expressions to interpolate and match.
+                element_expressions:
+                -   expr: "{0.text}--{0.url}"  # Element text, followed by url from element(0)
+                        # expr: "{0.tags[tag1]}"  # Grab value of tag "tag1"
+                    regex_match: text---http.*
+                    ignore_key_errors: False  # Default
+        
     # Merge paragraph items by matching tags.
     -   kind: merge_by_tag
         # Configuration for merging paragraph elements by tag.
