@@ -2,6 +2,7 @@
 
 from unittest import mock
 from pyfakefs import fake_filesystem_unittest  # type: ignore
+from parameterized import parameterized  # type:ignore
 
 from typing import Any
 from google.oauth2 import credentials  # type: ignore
@@ -20,6 +21,46 @@ HTML_DOC = '''
 '''
 
 BAD_HTML = '<html><body><p>no html close</p></body>'
+
+# Response of drive.files.list, partial result / first page
+DRIVE_FILE_LIST1 = {
+    'kind':
+        'drive#fileList',
+    'incompleteSearch':
+        True,
+    'nextPageToken':
+        't2',
+    'files': [
+        {
+            'kind': 'drive#file',
+            'mimeType': 'application/vnd.google-apps.document',
+            'id': '_id1_',
+            'name': '_name1_'
+        },
+        {
+            'kind': 'drive#file',
+            'mimeType': 'application/vnd.google-apps.document',
+            'id': '_id2_',
+            'name': '_name2_'
+        },
+    ],
+}
+
+# drive.files.list result, last page.
+DRIVE_FILE_LIST2 = {
+    'kind':
+        'drive#fileList',
+    'incompleteSearch':
+        False,
+    'files': [{
+        'kind': 'drive#file',
+        'mimeType': 'application/vnd.google-apps.document',
+        'id': '_id3_',
+        'name': '_name3_'
+    }],
+}
+
+MIME = 'application/vnd.google-apps.document'
 
 
 def _get_doc_tag(doc: doc_struct.Document) -> str:
@@ -46,6 +87,10 @@ class TestDocDownloader(fake_filesystem_unittest.TestCase):
         self.mock_service: Any = mock.Mock()
         self.mock_service.files().export_media(
         ).execute.return_value = HTML_DOC
+        self.mock_service.files().list().execute.side_effect = [
+            DRIVE_FILE_LIST1, DRIVE_FILE_LIST2
+        ]
+
         self.mock_build.return_value = self.mock_service
 
         self.mock_creds = mock.Mock(spec=credentials.Credentials)
@@ -112,3 +157,75 @@ class TestDocDownloader(fake_filesystem_unittest.TestCase):
                                          'whoever@wherever.com')
         result = downloader.get_from_html('id1')
         self.assertEqual('__content__', _get_doc_tag(result))
+
+    def test_files_list(self):
+        """Test listing Drive files."""
+        downloader = _google_docs.DocDownloader(creds_store=self.creds_store)
+
+        result = list(downloader.list_files('_q_'))
+
+        self.assertEqual(
+            [f'_name{i}_' for i in [1, 2, 3]],
+            [item['name'] for item in result],
+        )
+
+        self.assertEqual(
+            [f'_id{i}_' for i in [1, 2, 3]],
+            [item['id'] for item in result],
+        )
+
+    @parameterized.expand([  # type:ignore
+        (
+            'default',
+            {},
+            '(_q_) and sharedWithMe = true and trashed = false ' +
+            f'and mimeType = {MIME!r}',
+        ),
+        (
+            'none_shared',
+            {
+                'shared_with_me': None
+            },
+            f'(_q_) and trashed = false and mimeType = {MIME!r}',
+        ),
+        (
+            'shared_false_trash_true',
+            {
+                'shared_with_me': False,
+                'is_trashed': True
+            },
+            '(_q_) and sharedWithMe = false and trashed = true ' +
+            f'and mimeType = {MIME!r}',
+        ),
+        (
+            'minimal',
+            {
+                'shared_with_me': None,
+                'is_trashed': None,
+                'docs_only': False
+            },
+            '(_q_)',
+        ),
+    ])
+    def test_files_list_kwargs(self, name: str, kwargs: Any, expected: str):
+        """Test the effects of kwargs on the query string."""
+        downloader = _google_docs.DocDownloader(creds_store=self.creds_store)
+
+        _ = list(downloader.list_files('_q_', **kwargs))
+
+        self.mock_service.files().list.assert_called_with(
+            q=expected, pageToken='t2', includeItemsFromAllDrives=True)
+
+    def test_files_list_minimal_not_all(self):
+        """Test a minimal query with all drives set to false."""
+        downloader = _google_docs.DocDownloader(creds_store=self.creds_store)
+
+        _ = list(
+            downloader.list_files('_q_',
+                                  all_drives=False,
+                                  docs_only=False,
+                                  is_trashed=None,
+                                  shared_with_me=None))
+
+        self.mock_service.files().list.assert_called_with(
+            q='(_q_)', pageToken='t2', includeItemsFromAllDrives=False)

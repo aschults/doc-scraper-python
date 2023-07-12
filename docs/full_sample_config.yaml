@@ -22,6 +22,11 @@ sources:
             -   '1HZUlXXXXXX_SAMPLE2_XXXXXXIAQOa-xx9XxXx-xXxx'
             # Google account username (as email), incl. service accounts.
             username: 'someone@gmail.com'
+            # Drive query to search for docs 
+            # (https://developers.google.com/drive/api/guides/ref-search-terms).
+            queries:
+            -   "name contains 'Report'"
+            -   "starred = true and 'someone@anywhere.com' in owners"
         
     
 

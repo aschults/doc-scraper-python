@@ -15,6 +15,7 @@ from doc_scraper import doc_loader
 def _create_dummy_doc(tag_string: str) -> doc_struct.Document:
     """Create a simple doc containing a tag string."""
     return doc_struct.Document(
+        attrs={'tag': tag_string},
         shared_data=doc_struct.SharedData(),
         content=doc_struct.DocContent(elements=[
             doc_struct.Paragraph(
@@ -78,6 +79,22 @@ HTML_DOC = '''
     </body>
 </html>
 '''
+
+# Sample response of DocDownloader.list_files
+DRIVE_ENTRIES = [
+    {
+        'kind': 'drive#file',
+        'mimeType': 'application/vnd.google-apps.document',
+        'id': '_id1_',
+        'name': '_name1_'
+    },
+    {
+        'kind': 'drive#file',
+        'mimeType': 'application/vnd.google-apps.document',
+        'id': '_id2_',
+        'name': '_name2_'
+    },
+]
 
 
 class TestSources(fake_filesystem_unittest.TestCase):
@@ -146,3 +163,27 @@ class TestSources(fake_filesystem_unittest.TestCase):
 
             getter_patch.assert_called_once_with(username='',
                                                  creds_store=creds_store)
+
+    def test_doc_downloader_from_query(self):
+        """Check if queries are passed down to the doc downloader."""
+        mock_downloader: Any = mock.Mock(spec=doc_loader.DocDownloader)
+        mock_downloader.get_from_html.side_effect = [  # type: ignore
+            _create_dummy_doc(tag) for tag in ('t1', 't2', 't3', 't4')
+        ]
+        mock_downloader.list_files.return_value = DRIVE_ENTRIES
+        loader = sources.DocLoader(queries=['_q1_', '_q2_'],
+                                   downloader_or_creds_store=mock_downloader)
+        result = [item.attrs for item in loader]
+        self.assertEqual([{
+            'doc_id': f'_id{id_}_',
+            'doc_name': f'_name{id_}_',
+            'tag': f't{index+1}'
+        } for index, id_ in enumerate([1, 2, 1, 2])], result)
+        self.assertEqual([
+            mock.call.list_files('_q1_'),
+            mock.call.get_from_html('_id1_'),
+            mock.call.get_from_html('_id2_'),
+            mock.call.list_files('_q2_'),
+            mock.call.get_from_html('_id1_'),
+            mock.call.get_from_html('_id2_')
+        ], mock_downloader.mock_calls)

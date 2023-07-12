@@ -18,6 +18,8 @@ SourceType = Iterable[doc_struct.Document]
 # Class to configure SourceBuilder.create_instance().
 SourceConfig = generic.BuilderConfig
 
+SEARCH_LINK = 'https://developers.google.com/drive/api/guides/ref-search-terms'
+
 
 @dataclasses.dataclass(kw_only=True)
 class DocLoaderConfig():
@@ -41,6 +43,17 @@ class DocLoaderConfig():
             'help_samples': ['someone@gmail.com'],
         })
 
+    queries: Sequence[str] = dataclasses.field(
+        default_factory=list,
+        metadata={
+            'help_text':
+                f'Drive query to search for docs \n({SEARCH_LINK}).',
+            'help_samples': [[
+                'name contains \'Report\'',
+                'starred = true and \'someone@anywhere.com\' in owners',
+            ]],
+        })
+
 
 class DocLoader(SourceType, generic.CmdLineInjectable):
     """Download docs from Google Drive/Docs."""
@@ -48,6 +61,7 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
     def __init__(
         self,
         doc_ids: Optional[List[str]] = None,
+        queries: Optional[Sequence[str]] = None,
         username: Optional[str] = None,
         downloader_or_creds_store: doc_loader.DocDownloader |
         doc_loader.CredentialsStore | None = None
@@ -57,6 +71,7 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
         Args:
             doc_ids: IDs of docs to fetch. Default: []. The list can be
                 extended using set_commandline_args().
+            queries: List of query strings for drive.files.list
             username: Username associated with the credentials to use.
                 Use None(default) for default credentials.
             downloader_or_creds_store: Pass down DocDownloader itself, or
@@ -70,6 +85,7 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
                 username=username, creds_store=downloader_or_creds_store)
         else:
             self._doc_downloader = doc_loader.DocDownloader(username=username)
+        self._queries = queries
 
     def set_commandline_args(self, *args: str, **kwargs: str) -> None:
         """Add doc ids specified on command-line.
@@ -86,7 +102,24 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
             document = self._doc_downloader.get_from_html(doc_id)
             logging.debug('Fetched doc %d, id %s: %s', index, doc_id,
                           str(document))
+            new_attrs = dict(document.attrs)
+            new_attrs.update(doc_id=doc_id)
+            document = dataclasses.replace(document, attrs=new_attrs)
             yield document
+
+        for query in self._queries or []:
+            logging.debug('processing query %r', query)
+            for entry in self._doc_downloader.list_files(query):
+                document = self._doc_downloader.get_from_html(entry['id'])
+                logging.debug('Fetched doc with id %s: %s', entry['id'],
+                              str(document))
+                new_attrs = dict(document.attrs)
+                new_attrs.update(
+                    doc_id=entry['id'],
+                    doc_name=entry['name'],
+                )
+                document = dataclasses.replace(document, attrs=new_attrs)
+                yield document
 
     @classmethod
     def from_config(
@@ -106,7 +139,8 @@ class DocLoader(SourceType, generic.CmdLineInjectable):
             config = DocLoaderConfig()
         return DocLoader(doc_ids=list(config.doc_ids),
                          username=config.username,
-                         downloader_or_creds_store=creds_store)
+                         downloader_or_creds_store=creds_store,
+                         queries=config.queries)
 
 
 @dataclasses.dataclass(kw_only=True)
