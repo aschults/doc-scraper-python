@@ -128,6 +128,22 @@ TABLE = doc_struct.Table(
     ],
 )
 
+TABLE_3x2 = doc_struct.Table(
+    tags={'id': '2'},
+    elements=[
+        [
+            doc_struct.DocContent(tags={'id': '3a'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '3b'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '3c'}, elements=[]),
+        ],
+        [
+            doc_struct.DocContent(tags={'id': '3d'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '3e'}, elements=[]),
+            doc_struct.DocContent(tags={'id': '3f'}, elements=[]),
+        ],
+    ],
+)
+
 _T = TypeVar('_T', bound=object)
 
 
@@ -667,6 +683,22 @@ class TestRelationMatching(unittest.TestCase):
                 doc_struct.Table,
                 position=tags_relation.PositionMatchConfig(end_col=1)),
             {'3a', '3c'},
+        ),
+        (
+            'Match table 3x2 first col',
+            TABLE_3x2,
+            _tag_type_ancestor(
+                doc_struct.Table,
+                position=tags_relation.PositionMatchConfig(end_col=1)),
+            {'3a', '3d'},
+        ),
+        (
+            'Match table 3x2 last col',
+            TABLE_3x2,
+            _tag_type_ancestor(
+                doc_struct.Table,
+                position=tags_relation.PositionMatchConfig(start_col=2)),
+            {'3c', '3f'},
         ),
         (
             'Match table first row',

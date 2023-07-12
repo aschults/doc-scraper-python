@@ -1,0 +1,20 @@
+[
+    {
+        "row1": {
+            "name": "First Row grid",
+            "details": {
+                "name": "First Row grid",
+                "col1": "value11",
+                "col2": "value12"
+            }
+        },
+        "row2": {
+            "name": "Second Row grid",
+            "details": {
+                "name": "Second Row grid",
+                "col1": "value21",
+                "col2": "value22"
+            }
+        }
+    }
+]

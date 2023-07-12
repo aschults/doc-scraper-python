@@ -1,0 +1,207 @@
+#
+# Sample Documnent structure:
+#   ## Structures
+#   ## Table Grid
+#
+#   |         | Name            | col1    | col2    |
+#   | ------- | --------------- | ------- | ------- |
+#   | row1    | First Row grid  | value11 | value12 |
+#   | row2    | Second Row grid | value21 | value22 |
+#
+#   ## Non-Matching
+#
+#   |         | Name       | 
+#   | ------- | ---------- |
+#   | row1    | BAD ENTRY2 |
+#
+#   | Name    | MORE BAD ENTRIES |
+#
+# Extracted data:
+#   {
+#       "row1": {
+#           "name": "First Row grid",
+#           "col1": "value11"
+#           "col2": "value12"
+#       }
+#       "row2": {
+#           "name": "Second Row grid",
+#           "col1": "value21"
+#           "col2": "value22"
+#       }
+#   }
+# 
+
+sources:
+- kind: doc_files
+  config:
+    doc_filenames:
+    - data.html
+transformations:
+- kind: nest_bullets       
+  # Restructure the doc so BulletItems with higher indention
+  # are in the BulletItem.nested field, i.e. located within
+  # the lower indention items.
+- kind: nest_sections
+  # Same for sections: Make sure that h2 is inside h1, along with
+  # all of the text that belongs to the h1. To accomodate this,
+  # Section elements with introduced with fields Section.heading, 
+  # containing the heading text, and Section.content for the
+  # text inside the heading (including potential sub-headings)
+- kind: drop_elements
+  # Drop all text runs that only contain spaces.
+  config:
+    match_element:
+      element_types: [TextRun]
+      element_expressions:
+      - expr: '{0.text}'
+        regex_match: "^\\s*$"
+
+- kind: tag_matching
+  # Collect the section text and reformat it so we can use it
+  # to match elements. Get the merged text from all Section.section
+  # fields and apply some regexes to turn "This   is \ta Title  " into
+  # "this_is_a_title"
+  config:
+    tags:
+      add:
+        section: "{merged_text}"
+    match_element:
+      element_types:
+        - Section
+    variables:
+      merged_text:
+        section_heading_only: True
+        substitutions:
+        - regex: "(.)"
+          substitute: "\\1"
+          operation: lower
+        - regex: "^\\s+"
+          substitute: ""
+        - regex: "\\s+$"
+          substitute: ""
+        - regex: "\\s+"
+          substitute: "_"
+- kind: tag_matching
+  # Based on the section titles, select only relevant.
+  config:
+    tags:
+      add:
+        in_scope: "Y"
+    match_ancestor_list:
+    - skip_ancestors: any
+    - element_types: [Section]
+      required_tag_sets: [{section: "table_grid"}]
+    - skip_ancestors: any
+- kind: tag_matching
+  # Tag first column with the cell content
+  config:
+    tags:
+      add:
+        first_col_text: "{merged_text}"
+    match_element:
+      element_types:
+        - DocContent
+      end_col: 1
+    match_ancestor_list:
+    - skip_ancestors: any
+    - element_types: [Table]
+    variables:
+      merged_text:
+        substitutions:
+        - regex: "(.)"
+          substitute: "\\1"
+          operation: lower
+        - regex: "^\\s+"
+          substitute: ""
+        - regex: "\\s+$"
+          substitute: ""
+        - regex: "\\s+"
+          substitute: "_"
+- kind: tag_matching
+  # Tag first row with the cell content
+  config:
+    tags:
+      add:
+        first_row_text: "{merged_text}"
+    match_element:
+      element_types:
+        - DocContent
+      end_row: 1
+    match_ancestor_list:
+    - skip_ancestors: any
+    - element_types: [Table]
+    variables:
+      merged_text:
+        substitutions:
+        - regex: "(.)"
+          substitute: "\\1"
+          operation: lower
+        - regex: "^\\s+"
+          substitute: ""
+        - regex: "\\s+$"
+          substitute: ""
+        - regex: "\\s+"
+          substitute: "_"
+- kind: tag_matching
+  # Tag the label contents, i.e. all text behind the label. 
+  # Note: "ignore_errors" prevents the tag from being added
+  # when evaluation fails.
+  config:
+    tags:
+      add:
+        content_for_col: "{first_row.tags[first_row_text]}"
+        content_for_row: "{first_col.tags[first_col_text]}"
+        content_text: "{merged_text}"
+      ignore_errors: True
+    match_element:
+      element_types:
+        - DocContent
+      rejected_tags: 
+        first_col_text: ".*"
+        first_row_text: ".*"
+    variables:
+      first_col:
+        element_at:
+          col: first
+      first_row:
+        element_at:
+          row: first
+      merged_text:
+        substitutions:
+        - regex: "^\\s+"
+          substitute: ""
+        - regex: "\\s+$"
+          substitute: ""
+        - regex: "[ \\t]+"
+          substitute: " "
+- kind: strip_elements
+  config:
+    remove_styles_re: ['.*']
+    remove_style_rules_re: ['.*']
+- kind: extract_json
+  config:
+    extract_all: '.. | select(.type? == "Table")'
+    filters:
+    - '.tags?.in_scope'
+    render: '($table_content |from_entries)'
+    nested:
+      table_content:
+        extract_all:  '.elements[]'
+        filters:
+        - '.[0].tags.first_col_text != ""'
+        render: '{"key": $row_title[0], "value":{"name" :$name[0], "details": ($col_data | from_entries)}}'
+        nested:
+          name:
+            extract_all: .[] | select(.tags.content_for_col == "name")
+            render: .tags.content_text
+          row_title:
+            extract_all: .[0]
+            render: .tags.first_col_text
+          col_data:
+            extract_all: .[] | select(.tags.content_text)
+            render: '{"key": .tags.content_for_col, "value": .tags.content_text}'
+outputs:
+- kind: stdout
+- kind: single_file
+  config:
+    output_file: /tmp/result.json

@@ -315,7 +315,7 @@ class _2DGridWrapper(CoordinateGrid, Generic[_T], ABC):
                            rows):
             return False
 
-        cols_at_row = len(list(table[coords[1]]))
+        cols_at_row = len(list(table[coords[0]]))
         return is_in_range(coords[1], pos_range.start_col, pos_range.end_col,
                            cols_at_row)
 
