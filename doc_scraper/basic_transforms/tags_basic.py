@@ -147,6 +147,13 @@ class StringMatcher():
 
         self._regex: re.Pattern[str] = regex_or_string
 
+    def findall(self,
+                string: str,
+                pos: int = 0,
+                endpos: int = sys.maxsize) -> list[Any]:
+        """Proxy re.Pattern's findall method'."""
+        return self._regex.findall(string, pos, endpos)
+
     def match(self,
               string: str,
               pos: int = 0,

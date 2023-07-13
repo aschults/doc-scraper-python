@@ -90,7 +90,8 @@ class JsonExtractionTransformConfig():
             *map(self._add_preamble, self.filters))
         self._valid_progs = json_query.Filter(
             *map(self._add_preamble, self.validators))
-        self._base_prog = json_query.Query(self._add_preamble(self.extract_all))
+        self._base_prog = json_query.Query(
+            self._add_preamble(self.extract_all),)
 
     def _validate_item(self, data: Any) -> bool:
         """Find items not matching the validatiors and log them."""

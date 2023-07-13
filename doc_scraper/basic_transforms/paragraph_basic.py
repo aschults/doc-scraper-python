@@ -7,6 +7,7 @@ from doc_scraper import doc_struct
 from doc_scraper import doc_transform
 from doc_scraper import help_docs
 from doc_scraper.basic_transforms import tags_basic
+from doc_scraper.basic_transforms import tags_relation
 
 
 def _break_single_text_run(
@@ -251,3 +252,135 @@ def build_tag_merge_transform(
     """Build a Tag-based merge transformation based on config."""
     return TextMergeParagraphTransformation(
         try_merge_func=TagMergePolicy(config))
+
+
+TEXT_CONTAINER_TYPES = (doc_struct.TextRun, doc_struct.Link,
+                        doc_struct.Reference, doc_struct.Chip)
+
+
+@dataclasses.dataclass(kw_only=True)
+class TextSplitConfig(tags_relation.RelationalMatchingConfig):
+    """Split a text-based element by regex groups."""
+
+    text_regex: tags_basic.StringMatcher = dataclasses.field(
+        metadata={
+            'help_docs':
+                'Regex to match iteratively. Each group produces ' +
+                'a split element',
+            'help_samples': [('An element for each Unix path segment',
+                              '([^/])(?:/|$)')]
+        })
+
+    allow_no_matches: bool = dataclasses.field(
+        default=False,
+        metadata={
+            'help_docs':
+                'If set to true, elements that don\'t match the regex are ' +
+                'dropped.',
+            'help_samples': [('Default', False)]
+        })
+
+    element_tags: Sequence[tags_basic.TagUpdateConfig] = dataclasses.field(
+        default_factory=list,
+        metadata={
+            'help_docs':
+                'Add tags to the split elements, for each regex group.',
+            'help_samples': [('Tag first two split elements', [{
+                'add': {
+                    'first': 'x'
+                }
+            }, {
+                'add': {
+                    'second': 'x'
+                }
+            }])]
+        })
+
+    all_tags: Optional[tags_basic.TagUpdateConfig] = dataclasses.field(
+        default=None,
+        metadata={
+            'help_docs':
+                'Add tags to all split elements.',
+            'help_samples': [('Tag every split elements', {
+                'add': {
+                    'split_element': 'x'
+                }
+            })]
+        })
+
+    def split_element(
+        self, element: doc_struct.ParagraphElement,
+        path: Sequence[doc_struct.Element]
+    ) -> Optional[Sequence[doc_struct.ParagraphElement]]:
+        """Split the element or return None if not matching."""
+        if not self.is_matching(element, path):
+            return None
+
+        if not isinstance(element, TEXT_CONTAINER_TYPES):
+            return None
+
+        matches = self.text_regex.findall(element.text)
+        if not self.allow_no_matches:
+            if len(matches) == 0:
+                return None
+        matches = [item for match in matches for item in match]
+
+        result: Sequence[doc_struct.ParagraphElement] = []
+        for index, group in enumerate(matches):
+            new_element = dataclasses.replace(element, text=group)
+            if self.all_tags:
+                new_element = self.all_tags.update_tags(new_element)
+            if index < len(self.element_tags):
+                tag_updater = self.element_tags[index]
+                new_element = tag_updater.update_tags(new_element)
+            result.append(new_element)
+
+        return result
+
+
+class TextSplitTransformation(doc_transform.Transformation):
+    r"""Split a paragraph element with text into multiple copies.
+
+    E.g.
+    `TextRun(text='Prefix: content')` split by regex `^(.*)\s*:\s*(.*)$`
+    will result in `TextRun(text='Prefix'), TextRun(text='content')`
+    """
+
+    def __init__(
+        self,
+        config: TextSplitConfig,
+        context: Optional[doc_transform.TransformationContext] = None,
+    ) -> None:
+        """Construct an instance."""
+        super().__init__(context)
+        self.config = config
+
+    def _process_paragraph_elements(
+        self, element_list: Sequence[doc_struct.ParagraphElement]
+    ) -> Sequence[doc_struct.ParagraphElement]:
+        """Split a paragraph element with text apart by regex groups."""
+        if not element_list:
+            return []
+
+        result: List[doc_struct.ParagraphElement] = []
+        for element in element_list:
+            new_elements = self.config.split_element(element,
+                                                     self.context.path_objects)
+            if new_elements is None:
+                result.append(element)
+            else:
+                result.extend(new_elements)
+        return result
+
+    def _transform_paragraph_elements(
+        self, element_list: Sequence[doc_struct.ParagraphElement]
+    ) -> Sequence[doc_struct.ParagraphElement]:
+        """Build list of paragraph elements, merged where matching."""
+        return super()._transform_paragraph_elements(
+            self._process_paragraph_elements(element_list))
+
+    def _transform_text_line_elements(
+        self, element_list: Sequence[doc_struct.ParagraphElement]
+    ) -> Sequence[doc_struct.ParagraphElement]:
+        return super()._transform_text_line_elements(
+            self._process_paragraph_elements(element_list))

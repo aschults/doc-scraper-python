@@ -9,6 +9,7 @@ from parameterized import parameterized  # type: ignore
 from doc_scraper.basic_transforms import paragraph_basic
 from doc_scraper import doc_struct
 from doc_scraper.basic_transforms import tags_basic
+from doc_scraper.basic_transforms import tags_relation
 
 
 class TextBreakTest(unittest.TestCase):
@@ -475,3 +476,118 @@ class TestTagMergePolicy(unittest.TestCase):
         policy = paragraph_basic.TagMergePolicy(config)
 
         self.assertFalse(policy._is_matching(first, second))  # type: ignore
+
+
+class TextSplitTest(unittest.TestCase):
+    """Test the TextSplit transform."""
+
+    def test_simple_split(self):
+        """Test a simple split into two."""
+        config = paragraph_basic.TextSplitConfig(
+            text_regex=tags_basic.StringMatcher('_(.*):(.*)_$'),
+            element_tags=[
+                tags_basic.TagUpdateConfig(add={'x': '1'}),
+                tags_basic.TagUpdateConfig(add={'x': '2'}),
+            ],
+            all_tags=tags_basic.TagUpdateConfig(add={'y': '*'}),
+        )
+        data = doc_struct.Paragraph(elements=[
+            doc_struct.TextRun(text='_a:b_'),
+            doc_struct.TextRun(text='x'),
+            doc_struct.TextRun(text='_c:d_'),
+        ])
+        expected = doc_struct.Paragraph(elements=[
+            doc_struct.TextRun(tags={
+                'x': '1',
+                'y': '*'
+            }, text='a'),
+            doc_struct.TextRun(tags={
+                'x': '2',
+                'y': '*'
+            }, text='b'),
+            doc_struct.TextRun(text='x'),
+            doc_struct.TextRun(tags={
+                'x': '1',
+                'y': '*'
+            }, text='c'),
+            doc_struct.TextRun(tags={
+                'x': '2',
+                'y': '*'
+            }, text='d'),
+        ])
+
+        result = paragraph_basic.TextSplitTransformation(config)(data)
+        print(expected)
+        print(result)
+        self.assertEqual(expected, result)
+
+    def test_repeated_split(self):
+        """Test a simple split into two."""
+        config = paragraph_basic.TextSplitConfig(
+            text_regex=tags_basic.StringMatcher('([^:])(?::|$)'),
+            element_tags=[
+                tags_basic.TagUpdateConfig(add={'x': '1'}),
+            ],
+            all_tags=tags_basic.TagUpdateConfig(add={'y': '*'}),
+        )
+        data = doc_struct.Paragraph(elements=[
+            doc_struct.TextRun(text='a:b:c:d'),
+        ])
+        expected = doc_struct.Paragraph(elements=[
+            doc_struct.TextRun(tags={
+                'x': '1',
+                'y': '*'
+            }, text='a'),
+            doc_struct.TextRun(tags={'y': '*'}, text='b'),
+            doc_struct.TextRun(tags={'y': '*'}, text='c'),
+            doc_struct.TextRun(tags={'y': '*'}, text='d'),
+        ])
+
+        result = paragraph_basic.TextSplitTransformation(config)(data)
+        print(expected)
+        print(result)
+        self.assertEqual(expected, result)
+
+    def test_non_match(self):
+        """Test a simple split into two."""
+        config = paragraph_basic.TextSplitConfig(
+            text_regex=tags_basic.StringMatcher('([^:])_'),
+            all_tags=tags_basic.TagUpdateConfig(add={'y': '*'}),
+            allow_no_matches=True,
+        )
+        data = doc_struct.Paragraph(elements=[
+            doc_struct.TextRun(text='a'),
+        ])
+        expected = doc_struct.Paragraph(elements=[])
+
+        result = paragraph_basic.TextSplitTransformation(config)(data)
+        self.assertEqual(expected, result)
+
+    def test_matching(self):
+        """Test a simple split into two."""
+        config = paragraph_basic.TextSplitConfig(
+            text_regex=tags_basic.StringMatcher('_(.*):(.*)_$'),
+            all_tags=tags_basic.TagUpdateConfig(add={'y': '*'}),
+            match_element=tags_relation.PositionMatchConfig(
+                rejected_tags=tags_basic.MappingMatcher(r='.*')))
+        data = doc_struct.Paragraph(elements=[
+            doc_struct.TextRun(text='_a:b_'),
+            doc_struct.TextLine(elements=[
+                doc_struct.TextRun(text='_u:v_'),
+            ]),
+            doc_struct.TextRun(tags={'r': 'x'}, text='_c:d_'),
+        ])
+        expected = doc_struct.Paragraph(elements=[
+            doc_struct.TextRun(tags={'y': '*'}, text='a'),
+            doc_struct.TextRun(tags={'y': '*'}, text='b'),
+            doc_struct.TextLine(elements=[
+                doc_struct.TextRun(tags={'y': '*'}, text='u'),
+                doc_struct.TextRun(tags={'y': '*'}, text='v'),
+            ]),
+            doc_struct.TextRun(tags={'r': 'x'}, text='_c:d_'),
+        ])
+
+        result = paragraph_basic.TextSplitTransformation(config)(data)
+        print(expected)
+        print(result)
+        self.assertEqual(expected, result)

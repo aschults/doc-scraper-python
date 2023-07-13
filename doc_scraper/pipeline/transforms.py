@@ -24,8 +24,7 @@ TransformConfig = generic.BuilderConfig
 class ChainedTransformation():
     """Execute a sequence of transformations."""
 
-    def __init__(self,
-                 *transforms: Callable[[Any], Any]) -> None:
+    def __init__(self, *transforms: Callable[[Any], Any]) -> None:
         """Create an instance."""
         self.transforms = transforms
 
@@ -38,13 +37,11 @@ class ChainedTransformation():
         return element
 
 
-class TransformBuilder(
-        generic.GenericBuilder[Callable[[Any], Any]]):
+class TransformBuilder(generic.GenericBuilder[Callable[[Any], Any]]):
     """Build transformations based on string tags."""
 
-    def create_chain(
-        self, *config_data: TransformConfig
-    ) -> Callable[[Any], Any]:
+    def create_chain(self,
+                     *config_data: TransformConfig) -> Callable[[Any], Any]:
         """Create a chained transformation.
 
         Args:
@@ -75,6 +72,12 @@ def get_default_builder() -> TransformBuilder:
         paragraph_basic.build_tag_merge_transform,
         help_doc='Merge paragraph items by matching tags.',
     )
+
+    default_builder.register(
+        'split_text',
+        lambda config: paragraph_basic.TextSplitTransformation(config),
+        config_type=paragraph_basic.TextSplitConfig,
+        help_doc='Split text-based elements by regex groups.')
     default_builder.register(
         'nest_sections',
         lambda: sections_basic.SectionNestingTransform(),
@@ -97,16 +100,17 @@ def get_default_builder() -> TransformBuilder:
         'drop_elements',
         lambda config: elements_basics.DropElementsTransform(config),
         config_type=elements_basics.DropElementsConfig,
+        help_doc='Remove matching elements from the document.'
     )
     default_builder.register(
         'regex_replace',
         lambda config: paragraph_element_basic.RegexReplacerTransform(config),
         config_type=paragraph_element_basic.RegexReplacerConfig,
+        help_doc='Replace item text by regex substitution.'
     )
 
-    default_builder.register(
-        'extract_json',
-        json_basic.build_json_extraction_transform
-    )
+    default_builder.register('extract_json',
+                             json_basic.build_json_extraction_transform,
+                             help_doc='Extract relevant JSON parts.')
 
     return default_builder
