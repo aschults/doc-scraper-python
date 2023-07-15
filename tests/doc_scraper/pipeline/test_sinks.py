@@ -23,10 +23,13 @@ def _create_dummy_doc(tag_string: str,
         ]))
 
 
-def _get_doc_tag(doc: sinks.SinkItemType) -> str:
+def _get_doc_tag(doc: sinks.SinkItemType) -> str | sinks.EndOfOutput:
     """From a dummy doc, extract first text run of first paragraph."""
+    if isinstance(doc, sinks.EndOfOutput):
+        return doc
+
     if not isinstance(doc, doc_struct.Document):
-        raise AssertionError('need to have document instance')
+        raise AssertionError(f'need to have document instance, got {doc}')
     paragraph = doc.content.elements[0]
     if not isinstance(paragraph, doc_struct.Paragraph):
         raise AssertionError('Not a paragraph')
@@ -71,7 +74,10 @@ class TestSinkBuilder(unittest.TestCase):
 
         def output_func(doc: sinks.SinkItemType) -> None:
             self.output.append(doc)
-            self.config.append(config_string)
+            if isinstance(doc, sinks.EndOfOutput):
+                self.config.append('---')
+            else:
+                self.config.append(config_string)
 
         return output_func
 
@@ -82,7 +88,7 @@ class TestSinkBuilder(unittest.TestCase):
         func = self.builder.create_instance('x')
         func([_create_dummy_doc('a'), _create_dummy_doc('b')])
 
-        self.assertEqual(['a', 'b'],
+        self.assertEqual(['a', 'b', sinks.EndOfOutput()],
                          [_get_doc_tag(item) for item in self.output])
 
     def test_create_instance_configured(self):
@@ -92,9 +98,9 @@ class TestSinkBuilder(unittest.TestCase):
         func = self.builder.create_instance('x', 'add')
         func([_create_dummy_doc('a'), _create_dummy_doc('b')])
 
-        self.assertEqual(['a', 'b'],
+        self.assertEqual(['a', 'b', sinks.EndOfOutput()],
                          [_get_doc_tag(item) for item in self.output])
-        self.assertEqual(['add', 'add'], self.config)
+        self.assertEqual(['add', 'add', '---'], self.config)
 
     def test_create_instance_multiplex(self):
         """Test the creation of a multiplexed sink, to both outputs."""
@@ -105,9 +111,9 @@ class TestSinkBuilder(unittest.TestCase):
                                                sinks.OutputConfig(kind='y'))
         func([_create_dummy_doc('a'), _create_dummy_doc('b')])
 
-        self.assertEqual(['a', 'b'],
+        self.assertEqual(['a', 'b', sinks.EndOfOutput()],
                          [_get_doc_tag(item) for item in self.output])
-        self.assertEqual(['a', 'b'],
+        self.assertEqual(['a', 'b', sinks.EndOfOutput()],
                          [_get_doc_tag(item) for item in self.output2])
 
 
@@ -178,3 +184,67 @@ class TestFileOutput(fake_filesystem_unittest.TestCase):
         self.assertEqual(
             JSON_OUTPUT_TEMPLATE.replace('991199', '222'),
             self.fs.get_object('/file222').contents)  # type: ignore
+
+    def test_csv_output(self):
+        """Test output with minimal configuration."""
+        out_file = io.StringIO()
+        output_func = sinks.CsvSingleFileOutput(out_file,
+                                                close_file=True,
+                                                config=sinks.CsvOutputConfig())
+        output_func(['a', 'b', 'c'])
+        output_func(['d', 'e', 'f'])
+
+        self.assertEqual('a,b,c\r\nd,e,f\r\n', out_file.getvalue())
+
+    def test_csv_output_max_config(self):
+        """Test with most config set and not closing the file."""
+        out_file = io.StringIO()
+        config = sinks.CsvOutputConfig(
+            delimiter='|',
+            doublequote=False,
+            escapechar='%',
+            quotechar='/',
+            fields=['f1', 'f2', 'f3'],
+            quoting='all',
+            lineterminator='&',
+            with_headers=True,
+        )
+        output_func = sinks.CsvSingleFileOutput(out_file,
+                                                close_file=False,
+                                                config=config)
+        output_func(['a', 'b', 'c'])
+        output_func(['d', 'e', 'f'])
+        output_func(sinks.EndOfOutput())
+
+        self.assertEqual('/f1/|/f2/|/f3/&/a/|/b/|/c/&/d/|/e/|/f/&',
+                         out_file.getvalue())
+
+    def test_csv_output_flatten(self):
+        """Test flattening and list of dict structure."""
+        out_file = io.StringIO()
+        config = sinks.CsvOutputConfig(
+            flatten_list=True,
+            fields=['f1', 'f2', 'f3'],
+            lineterminator='|',
+        )
+        output_func = sinks.CsvSingleFileOutput(out_file,
+                                                close_file=True,
+                                                config=config)
+        output_func([['a', 'b', 'c'], ['d', 'e', 'f']])
+        output_func([{'f1': 'g', 'f2': 'h', 'f3': 'i'}])
+        self.assertEqual('a,b,c|d,e,f|g,h,i|', out_file.getvalue())
+        self.assertFalse(out_file.closed)
+        output_func(sinks.EndOfOutput())
+        self.assertTrue(out_file.closed)
+
+    def test_csv_output_file_output(self):
+        """Test file output and from_config function."""
+        config = sinks.CsvOutputConfig(lineterminator='\n',
+                                       output_file='/result.csv')
+        output_func = sinks.CsvSingleFileOutput.from_config(config)
+        output_func(['a', 'b', 'c'])
+        output_func(sinks.EndOfOutput())
+
+        self.assertEqual(
+            'a,b,c\n',
+            self.fs.get_object('/result.csv').contents)  # type: ignore

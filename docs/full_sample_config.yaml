@@ -577,6 +577,39 @@ transformations:
 
 # Places to write down the result
 outputs:
+    # Write to a single CSV file.
+    -   kind: csv_file
+        # Configuration for the CSV file to write.
+        # 
+        #     See Also: https://docs.python.org/3/library/csv.html.
+        #     
+        config:
+            # Provide a filename to write to. Default: stdout
+            output_file: '/tmp/file.csv'
+            # Set the CSV dialect.
+            dialect: 'excel'  # Default
+            # Override the field delimiter.
+            delimiter: ','  # Default
+                # delimiter: '\t'  # Tab separated
+            # Override the char used to quote text.
+            quotechar: '"'  # Default
+            # Override the escape char used.
+            escapechar:  # Default
+            # Override if occurrences of the quote char should be doubled.
+            doublequote: True  # Default
+            # Override line terminator.
+            lineterminator: '\r\n'  # Default
+            # Override quoting style.
+            quoting: 'minimal'  # Default
+            # List of fields to write to the file.
+            fields:
+            -   'first_field'
+            -   'second_field'
+            # If set to True, list-typed items are considered multiple rows.
+            flatten_list: False  # Default
+            # If set to True, the specified fields are output as header row.
+            with_headers: False  # Default
+        
     # Write to a single file, with separators between.
     -   kind: single_file
         # Configuration to write to a single file, concatenated.

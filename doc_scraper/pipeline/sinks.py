@@ -4,11 +4,11 @@ import dataclasses
 import json
 import sys
 import logging
-
+import csv
 from typing import (
     Iterable,
     Callable,
-    TextIO,
+    IO,
     Union,
     Type,
     Optional,
@@ -16,6 +16,8 @@ from typing import (
     Dict,
     Sequence,
     Mapping,
+    Literal,
+    cast,
 )
 
 from doc_scraper import doc_struct
@@ -25,8 +27,24 @@ from . import generic
 
 OutputConfig = generic.BuilderConfig
 
+
+class EndOfOutput():
+    """Mark the end of the output.
+
+    Allows output functions to e.g. close files.
+    """
+
+    def __eq__(self, other: object) -> bool:
+        """Compare two instances.
+
+        Both being EndOfOutput instances is sufficient.
+        """
+        return isinstance(other, EndOfOutput)
+
+
 # The types of arguments that can be sent to a sink.
-SinkItemType = Union[doc_struct.Element, Sequence[Any], Mapping[str, Any]]
+SinkItemType = Union[EndOfOutput, doc_struct.Element, Sequence[Any],
+                     Mapping[str, Any]]
 
 # Function type representing the output of a single document.
 # SinkBuilder registers this type to internally process individual docs.
@@ -77,6 +95,9 @@ class FileOutputBase():
 
     def __call__(self, item: Any) -> Any:
         """Process the passed item for output."""
+        if isinstance(item, EndOfOutput):
+            return
+
         context: Dict[str, Any] = {}
         if isinstance(item, doc_struct.Element):
             context.update(item.attrs)
@@ -103,13 +124,13 @@ class SingleFileOutput(FileOutputBase):
     """Output to a single file/filehandle."""
 
     def __init__(self,
-                 output_file: Optional[Union[str, TextIO]] = None,
+                 output_file: Optional[Union[str, IO[str]]] = None,
                  separator: Optional[str] = None) -> None:
         r"""Create an instance.
 
         Args;
-            output_file: file(TextIO) instance to use for output.
-                Default: stdout.
+            output_file: file as IO[str] instance or filename to use for
+                output. Default: stdout.
             separator: Separator string to add between each output file.
                 Default: "\n---\n'
         """
@@ -119,25 +140,35 @@ class SingleFileOutput(FileOutputBase):
         if output_file is None:
             output_file = sys.stdout
         self.separator = separator
-        self.output_file = output_file
+
+        if isinstance(output_file, str):
+            self.output_file = open(output_file, 'w', encoding='utf-8')
+            self._close_file = True
+        else:
+            self.output_file = output_file
+            self._close_file = False
+
+    def __call__(self, item: Any) -> Any:
+        """Write data to the file.
+
+        Handles file closure when receiving an EndOfOutput instance.
+        """
+        if isinstance(item, EndOfOutput):
+            if self._close_file:
+                self.output_file.close()
+            else:
+                self.output_file.flush()
+            return
+        super().__call__(item)
 
     def _perform_output(self,
                         as_string: str,
                         context: Optional[Dict[str, Any]] = None) -> None:
         """Append the converted doc to the filehandle."""
         logging.debug('Writing to file %s', str(self.output_file))
-        if isinstance(self.output_file, str):
-            with open(self.output_file,
-                      'w' if self.output_index == 0 else 'a',
-                      encoding='utf-8') as output_file:
-                if self.output_index > 0:
-                    output_file.write(self.separator)
-                output_file.write(as_string)
-        else:
-            if self.output_index > 0:
-                self.output_file.write(self.separator)
-            self.output_file.write(as_string)
-            self.output_file.flush()
+        if self.output_index > 0:
+            self.output_file.write(self.separator)
+        self.output_file.write(as_string)
 
     @classmethod
     def from_config(
@@ -152,6 +183,188 @@ class SingleFileOutput(FileOutputBase):
         else:
             output_file = open(config.output_file, 'w', encoding='utf-8')
         return SingleFileOutput(output_file)
+
+
+# String version of the CSV quoting type.
+QuotingType = Literal['all', 'minimal', 'none', 'nonnumeric']
+
+# Map to convert the string quoting version to the parameter
+# passed to the writer.
+QUOTING_MAP: Mapping[str, Any] = {
+    'all': csv.QUOTE_ALL,
+    'minimal': csv.QUOTE_MINIMAL,
+    'none': csv.QUOTE_NONE,
+    'nonnumeric': csv.QUOTE_NONNUMERIC,
+}
+
+
+@dataclasses.dataclass(kw_only=True)
+class CsvOutputConfig():
+    """Configuration for the CSV file to write.
+
+    See Also: https://docs.python.org/3/library/csv.html.
+    """
+
+    output_file: Optional[str] = dataclasses.field(
+        default='-',
+        metadata={
+            'help_text': 'Provide a filename to write to. Default: stdout',
+            'help_samples': ['/tmp/file.csv'],
+        })
+
+    dialect: str = dataclasses.field(
+        default='excel',
+        metadata={
+            'help_text': 'Set the CSV dialect.',
+            'help_samples': [('Default', 'excel')],
+        })
+
+    delimiter: str = dataclasses.field(
+        default=',',
+        metadata={
+            'help_text': 'Override the field delimiter.',
+            'help_samples': [('Default', ','), ('Tab separated', '\t')],
+        })
+    quotechar: Optional[str] = dataclasses.field(
+        default='"',
+        metadata={
+            'help_text': 'Override the char used to quote text.',
+            'help_samples': [('Default', '"')],
+        })
+    escapechar: Optional[str] = dataclasses.field(
+        default=None,
+        metadata={
+            'help_text': 'Override the escape char used.',
+            'help_samples': [('Default', None)],
+        })
+    doublequote: bool = dataclasses.field(
+        default=True,
+        metadata={
+            'help_text':
+                'Override if occurrences of the quote char should be doubled.',
+            'help_samples': [('Default', True)],
+        })
+    lineterminator: str = dataclasses.field(
+        default='\r\n',
+        metadata={
+            'help_text': 'Override line terminator.',
+            'help_samples': [('Default', '\r\n')],
+        })
+    quoting: QuotingType = dataclasses.field(
+        default='minimal',
+        metadata={
+            'help_text': 'Override quoting style.',
+            'help_samples': [('Default', 'minimal')],
+        })
+
+    fields: Optional[Sequence[str]] = dataclasses.field(
+        default=None,
+        metadata={
+            'help_text': 'List of fields to write to the file.',
+            'help_samples': [['first_field', 'second_field']],
+        })
+    flatten_list: bool = dataclasses.field(
+        default=False,
+        metadata={
+            'help_text':
+                'If set to True, list-typed items are considered ' +
+                'multiple rows.',
+            'help_samples': [('Default', False)],
+        })
+
+    with_headers: bool = dataclasses.field(
+        default=False,
+        metadata={
+            'help_text':
+                'If set to True, the specified fields are output ' +
+                'as header row.',
+            'help_samples': [('Default', False)],
+        })
+
+    @property
+    def quoting_enum(self) -> Any:
+        """Return the quoting style as enum."""
+        return QUOTING_MAP[self.quoting]
+
+
+class CsvSingleFileOutput():
+    """Write output to a CSV file.
+
+    Does not accept doc_struct.Element types.
+    """
+
+    def __init__(self, output: IO[str], close_file: bool,
+                 config: CsvOutputConfig):
+        """Create an instance.
+
+        Args:
+            output: The IO instance to the opened file.
+            close_file: If set to True, close the file when receiving
+                EndOfOutput
+            config:
+                Configuration for the CSV writer.
+        """
+        self.config = config
+        self.output = output
+        self._close_file = close_file
+        self._writer = csv.writer(
+            output,
+            config.dialect,
+            delimiter=config.delimiter,
+            quotechar=config.quotechar,
+            escapechar=config.escapechar,
+            doublequote=config.doublequote,
+            lineterminator=config.lineterminator,
+            quoting=config.quoting_enum,
+        )
+        if self.config.fields is not None and self.config.with_headers:
+            self._writer.writerow(self.config.fields)
+
+    def _write_row(self, data: Any):
+        """Write a single row, from list or dict."""
+        if isinstance(data, dict):
+            dict_data = cast(dict[str, Any], data)
+            if not self.config.fields:
+                raise ValueError(
+                    'Cannot handle dicts when fields are not set in config.')
+            row = [dict_data.get(key, None) for key in self.config.fields]
+            self._writer.writerow(row)
+        if isinstance(data, list):
+            self._writer.writerow(cast(list[Any], data))
+
+    def __call__(self, item: Any) -> Any:
+        """Process the passed item for output."""
+        if isinstance(item, EndOfOutput):
+            if self._close_file:
+                self.output.close()
+            else:
+                self.output.flush()
+            return
+
+        if isinstance(item, doc_struct.Element):
+            raise ValueError(
+                'Cannot write doc_struct.Element instances as CSV.')
+
+        if self.config.flatten_list and isinstance(item, list):
+            for row in cast(list[Any], item):
+                self._write_row(row)
+        else:
+            self._write_row(item)
+
+    @classmethod
+    def from_config(
+            cls,
+            config: Optional[CsvOutputConfig] = None) -> 'CsvSingleFileOutput':
+        """Create an instance from a config object."""
+        if config is None:
+            config = CsvOutputConfig()
+
+        if config.output_file is None or config.output_file == '-':
+            output_file = sys.stdout
+            return CsvSingleFileOutput(output_file, False, config)
+        else:
+            output_file = open(config.output_file, 'w', encoding='utf-8')
+            return CsvSingleFileOutput(output_file, True, config)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -274,6 +487,7 @@ class SinkBuilder(generic.CmdLineInjectable):
         def _sink_func(source: Iterable[SinkItemType]) -> None:
             for doc in source:
                 output_func(doc)
+            output_func(EndOfOutput())
 
         return _sink_func
 
@@ -289,6 +503,8 @@ class SinkBuilder(generic.CmdLineInjectable):
             for document in source:
                 for func in output_funcs:
                     func(document)
+            for func in output_funcs:
+                func(EndOfOutput())
 
         return _sink_func
 
@@ -312,6 +528,10 @@ def get_default_bulider() -> SinkBuilder:
         default_factory=SingleFileConfig,
         config_type=SingleFileConfig,
         help_doc='Write to a single file, with separators between.')
+    builder.register('csv_file',
+                     CsvSingleFileOutput.from_config,
+                     config_type=CsvOutputConfig,
+                     help_doc='Write to a single CSV file.')
     builder.register(
         'template_path',
         TemplatedPathOutput.from_config,
