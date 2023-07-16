@@ -574,6 +574,22 @@ transformations:
                         col: first # others: last, prev, next
                         # Vertical relative position of the element.
                         row: first # others: last, prev, next
+                text_aggregation:
+                    # List of regex-based replacements.
+                    substitutions:
+                    -   # The Python regex to match.
+                        regex: '\\s+'  # All spaces (including newline)
+                        # The replacement text.
+                        substitute: ' '  # Replace with one space
+                        # Additional operation to apply.
+                        operation: 'lower'  # Make all lower case
+                    # Text extraction mode.
+                    aggregation_mode: 'raw'  # Default and only avaiable
+                    # For Section element, only collect heading.
+                    section_heading_only: False  # Default
+                json_eval:
+                    # JSON query to evaluate
+                    json_query: '[..|.text?] |join("")'  # Merge all text
         
     
 

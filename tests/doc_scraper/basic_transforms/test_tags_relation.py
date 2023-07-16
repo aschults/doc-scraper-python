@@ -1205,6 +1205,50 @@ class TestRelativeTaggingTransform(unittest.TestCase):
             },
             [('33', '__')],
         ),
+        (
+            'JSON evaluation',
+            '33',
+            '_{v}_',
+            {
+                'v':
+                    tags_relation.JsonQueryEvaluator(
+                        json_query='[1,2,3] | join(":")')
+            },
+            [('33', '_1:2:3_')],
+        ),
+        (
+            'JSON evaluation to null',
+            '33',
+            '_{v}_',
+            {
+                'v':
+                    tags_relation.JsonQueryEvaluator(
+                        json_query='null')
+            },
+            [],
+        ),
+        (
+            'JSON evaluation context',
+            '33',
+            '_{v}_',
+            {
+                'v':
+                    tags_relation.JsonQueryEvaluator(
+                        json_query='.tags.id')
+            },
+            [('33', '_33_')],
+        ),
+        (
+            'JSON evaluation root',
+            '33',
+            '_{v}_',
+            {
+                'v':
+                    tags_relation.JsonQueryEvaluator(
+                        json_query='$root.tags.id')
+            },
+            [('33', '_0_')],
+        ),
     ])
     # pylint: disable=unused-argument
     def test_transform(

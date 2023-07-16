@@ -588,6 +588,17 @@ DOC_HELP_TAG_UPDATE_CONFIG_SAMPLE = """
 class TagUpdateConfig():
     """Configuration for updating tags."""
 
+    class _None():
+        """Replacement for none in interpolation.
+
+        Raises AttributeError to be caought during interpolation
+        to ensure the key is skipped.
+        """
+
+        def __str__(self):
+            """Raise AttributeError."""
+            raise AttributeError('No rendering of None')
+
     add: Mapping[str,
                  str] = dataclasses.field(default_factory=dict,
                                           metadata={
@@ -622,6 +633,10 @@ class TagUpdateConfig():
     def _interpolate_tag(self, key: str, template: str, *args: Any,
                          **kwargs: Any) -> Optional[str]:
         """Interpolate a tag value with element and other data."""
+        kwargs = {
+            key: self._None() if value is None else value
+            for key, value in kwargs.items()
+        }
         try:
             return template.format(*args, **kwargs)
         except (KeyError, IndexError, AttributeError) as exc:

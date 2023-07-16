@@ -20,6 +20,7 @@ from abc import abstractmethod, ABC
 from doc_scraper import doc_struct
 from doc_scraper.basic_transforms import tags_basic
 from doc_scraper import help_docs
+from doc_scraper import json_query
 
 # 1d or 2d coordinates used to identify elements.
 CoordinatesType = None | int | Tuple[int, int]
@@ -877,11 +878,43 @@ class TextAggregationEvaluator(Evaluator, tags_basic.RegexReplacer):
         return self.transform_text(agg_text)
 
 
+@dataclasses.dataclass(kw_only=True)
+class JsonQueryEvaluator(Evaluator):
+    """Evaluate JSON query."""
+
+    def __post_init__(self):
+        """Compile the query after construction."""
+        self._query_obj = json_query.Query(self.json_query, root=None)
+        self._root_element: Optional[doc_struct.Element] = None
+
+    json_query: str = dataclasses.field(
+        metadata={
+            'help_text': 'JSON query to evaluate',
+            'help_samples': [('Merge all text', '[..|.text?] |join("")')],
+        })
+
+    def get_value(self, element: doc_struct.Element,
+                  path: Optional[Sequence[doc_struct.Element]]) -> Any:
+        """Evaluate the JSON query.."""
+        if not path:
+            raise ValueError('Need path for evaluator')
+
+        root = path[0]
+        if id(root) != id(self._root_element):
+            self._query_obj = json_query.Query(self.json_query,
+                                               root=doc_struct.as_dict(root))
+
+        result = self._query_obj.get_first(doc_struct.as_dict(element))
+        if not json_query.is_output(result):
+            return None
+        return result
+
+
 # All evaluators as Union so Dacite can pick up on them.
 # Note: Dacite does currently not support creating subclases when
 #       a field is of type base class.
 EvaluatorsType = Union[RelativePositionEvaluator, AncestorPathEvaluator,
-                       TextAggregationEvaluator]
+                       TextAggregationEvaluator, JsonQueryEvaluator]
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -902,6 +935,10 @@ class RelativeTaggingConfig(
                     help_docs.ClassBasedSample(AncestorPathEvaluator),
                 'related_element':
                     help_docs.ClassBasedSample(RelativePositionEvaluator),
+                'text_aggregation':
+                    help_docs.ClassBasedSample(TextAggregationEvaluator),
+                'json_eval':
+                    help_docs.ClassBasedSample(JsonQueryEvaluator),
             }],
         })
 

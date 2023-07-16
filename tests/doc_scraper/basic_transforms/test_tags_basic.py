@@ -270,8 +270,10 @@ class TagUpdateTest(unittest.TestCase):
             add={
                 'b': 'new_{0.tags[a]}',
                 'c': '{some_field}',
+                'd': '{none_value}',
             },
             remove=['a'],
+            ignore_errors=True,
         )
         element = doc_struct.Element(tags={'a': 'old'})
         self.assertEqual(
@@ -279,7 +281,9 @@ class TagUpdateTest(unittest.TestCase):
                 'b': 'new_old',
                 'c': 'field_val'
             },
-            config.update_tags(element, some_field='field_val').tags,
+            config.update_tags(element,
+                               some_field='field_val',
+                               none_value=None).tags,
         )
 
 
