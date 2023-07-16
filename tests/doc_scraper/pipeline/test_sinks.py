@@ -188,8 +188,7 @@ class TestFileOutput(fake_filesystem_unittest.TestCase):
     def test_csv_output(self):
         """Test output with minimal configuration."""
         out_file = io.StringIO()
-        output_func = sinks.CsvSingleFileOutput(out_file,
-                                                close_file=True,
+        output_func = sinks.CsvSingleFileOutput(output=out_file,
                                                 config=sinks.CsvOutputConfig())
         output_func(['a', 'b', 'c'])
         output_func(['d', 'e', 'f'])
@@ -209,9 +208,7 @@ class TestFileOutput(fake_filesystem_unittest.TestCase):
             lineterminator='&',
             with_headers=True,
         )
-        output_func = sinks.CsvSingleFileOutput(out_file,
-                                                close_file=False,
-                                                config=config)
+        output_func = sinks.CsvSingleFileOutput(output=out_file, config=config)
         output_func(['a', 'b', 'c'])
         output_func(['d', 'e', 'f'])
         output_func(sinks.EndOfOutput())
@@ -221,21 +218,23 @@ class TestFileOutput(fake_filesystem_unittest.TestCase):
 
     def test_csv_output_flatten(self):
         """Test flattening and list of dict structure."""
-        out_file = io.StringIO()
         config = sinks.CsvOutputConfig(
+            output_file='/out.csv',
             flatten_list=True,
             fields=['f1', 'f2', 'f3'],
             lineterminator='|',
         )
-        output_func = sinks.CsvSingleFileOutput(out_file,
-                                                close_file=True,
-                                                config=config)
+        output_func = sinks.CsvSingleFileOutput(config=config)
         output_func([['a', 'b', 'c'], ['d', 'e', 'f']])
         output_func([{'f1': 'g', 'f2': 'h', 'f3': 'i'}])
-        self.assertEqual('a,b,c|d,e,f|g,h,i|', out_file.getvalue())
-        self.assertFalse(out_file.closed)
+        self.assertTrue(self.fs.has_open_file(
+            self.fs.get_object('/out.csv')))  # type: ignore
         output_func(sinks.EndOfOutput())
-        self.assertTrue(out_file.closed)
+        self.assertFalse(self.fs.has_open_file(
+            self.fs.get_object('/out.csv')))  # type: ignore
+        self.assertEqual(
+            'a,b,c|d,e,f|g,h,i|',
+            self.fs.get_object('/out.csv').contents)  # type: ignore
 
     def test_csv_output_file_output(self):
         """Test file output and from_config function."""

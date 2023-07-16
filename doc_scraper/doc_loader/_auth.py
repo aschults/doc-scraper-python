@@ -2,7 +2,6 @@
 """Provide Authentication methods to access the documents."""
 
 import logging
-import glob
 
 from typing import Sequence, Optional, Dict
 
@@ -12,6 +11,8 @@ from google.oauth2 import credentials
 from google.oauth2 import service_account
 from google.auth.transport import requests as goog_requests
 from google.auth.exceptions import RefreshError
+
+from doc_scraper import adaptors
 
 # Default scopes to use for OAuth.
 DEFAULT_SCOPES: Sequence[str] = [
@@ -116,7 +117,8 @@ def get_credentials_from_webserver_auth(
         raise ValueError(f'Expecting valid credentials, got {creds}')
 
     try:
-        with open(credentials_file, "w", encoding='utf-8') as filehandle:
+        with adaptors.get_fs().open(credentials_file, "w",
+                                    encoding='utf-8') as filehandle:
             filehandle.write(creds.to_json())
     except OSError as exception:
         logging.warning('could not write credentials to file: %s', exception)
@@ -130,7 +132,7 @@ def get_credentials_from_service_account(
     """Create service account credentials from a glob of creds files."""
     result: Sequence[service_account.Credentials] = []
 
-    for acc_filename in glob.glob(fileglob):
+    for acc_filename in adaptors.get_fs().glob(fileglob):
         result.append(
             service_account.Credentials.from_service_account_file(
                 acc_filename))

@@ -22,6 +22,7 @@ from typing import (
 
 from doc_scraper import doc_struct
 from doc_scraper import help_docs
+from doc_scraper import adaptors
 
 from . import generic
 
@@ -142,7 +143,9 @@ class SingleFileOutput(FileOutputBase):
         self.separator = separator
 
         if isinstance(output_file, str):
-            self.output_file = open(output_file, 'w', encoding='utf-8')
+            self.output_file = adaptors.get_fs().open(output_file,
+                                                      'w',
+                                                      encoding='utf-8')
             self._close_file = True
         else:
             self.output_file = output_file
@@ -181,7 +184,9 @@ class SingleFileOutput(FileOutputBase):
         if config.output_file is None or config.output_file == '-':
             output_file = sys.stdout
         else:
-            output_file = open(config.output_file, 'w', encoding='utf-8')
+            output_file = adaptors.get_fs().open(config.output_file,
+                                                 'w',
+                                                 encoding='utf-8')
         return SingleFileOutput(output_file)
 
 
@@ -293,22 +298,31 @@ class CsvSingleFileOutput():
     Does not accept doc_struct.Element types.
     """
 
-    def __init__(self, output: IO[str], close_file: bool,
-                 config: CsvOutputConfig):
+    def __init__(self,
+                 config: CsvOutputConfig,
+                 output: Optional[IO[str]] = None):
         """Create an instance.
 
         Args:
-            output: The IO instance to the opened file.
-            close_file: If set to True, close the file when receiving
-                EndOfOutput
             config:
                 Configuration for the CSV writer.
+            output: The optional IO instance to the opened file.
         """
         self.config = config
-        self.output = output
-        self._close_file = close_file
+
+        if output is not None:
+            self.output = output
+            self._close_file = False
+        elif config.output_file is None or config.output_file == '-':
+            self.output = sys.stdout
+            self._close_file = False
+        else:
+            self.output = adaptors.get_fs().open(config.output_file,
+                                                 'w',
+                                                 encoding='utf-8')
+            self._close_file = True
         self._writer = csv.writer(
-            output,
+            self.output,
             config.dialect,
             delimiter=config.delimiter,
             quotechar=config.quotechar,
@@ -359,12 +373,7 @@ class CsvSingleFileOutput():
         if config is None:
             config = CsvOutputConfig()
 
-        if config.output_file is None or config.output_file == '-':
-            output_file = sys.stdout
-            return CsvSingleFileOutput(output_file, False, config)
-        else:
-            output_file = open(config.output_file, 'w', encoding='utf-8')
-            return CsvSingleFileOutput(output_file, True, config)
+        return CsvSingleFileOutput(config)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -409,7 +418,8 @@ class TemplatedPathOutput(FileOutputBase):
         filename = self.path_template.format(**template_vars)
 
         logging.debug('writing to file %s', filename)
-        with open(filename, 'w', encoding='utf-8') as output_file:
+        with adaptors.get_fs().open(filename, 'w',
+                                    encoding='utf-8') as output_file:
             output_file.write(as_string)
 
     @classmethod

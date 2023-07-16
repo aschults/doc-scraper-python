@@ -1,6 +1,6 @@
 """Functionality to assemble whole pipelines."""
 
-from typing import Any, Dict, Sequence, Optional, Union, TextIO
+from typing import Any, Dict, Sequence, Optional, Union, IO
 import dataclasses
 import logging
 
@@ -9,6 +9,7 @@ import yaml
 
 from doc_scraper import help_docs
 from doc_scraper import doc_loader
+from doc_scraper import adaptors
 
 from . import transforms
 from . import sources
@@ -98,10 +99,12 @@ class PipelineBuilder(generic.CmdLineInjectable):
             logging.info('Reading pipeline from data structure: %s', str(data))
             raise
 
-    def from_file(self, config_file: Union[str, TextIO]) -> Pipeline:
+    def from_file(self, config_file: Union[str, IO[str]]) -> Pipeline:
         """Create a pipeline from a YAML config file."""
         if isinstance(config_file, str):
-            config_file = open(config_file, 'r', encoding='utf-8')
+            config_file = adaptors.get_fs().open(config_file,
+                                                 'r',
+                                                 encoding='utf-8')
         data: Dict[str, Any] = yaml.safe_load(config_file)  # type: ignore
         return self.from_dict(data)
 

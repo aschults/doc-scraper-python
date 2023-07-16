@@ -12,6 +12,7 @@ from google.auth import credentials as auth_credentials  # type: ignore
 from googleapiclient import discovery, http
 
 from doc_scraper import doc_struct, html_extractor
+from doc_scraper import adaptors
 
 from . import _auth
 
@@ -145,7 +146,8 @@ class DocDownloader():
         if self.raw_html_dump_dir is not None:
             dump_path = os.path.join(self.raw_html_dump_dir,
                                      doc_id + '_raw.html')
-            with open(dump_path, 'w', encoding='utf-8') as dump_file:
+            with adaptors.get_fs().open(dump_path, 'w',
+                                        encoding='utf-8') as dump_file:
                 dump_file.write(resp)
 
         return resp

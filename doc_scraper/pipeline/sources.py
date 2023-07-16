@@ -9,6 +9,7 @@ from typing import (Iterable, Iterator, List, Optional, Sequence)
 from doc_scraper import doc_struct
 from doc_scraper import html_extractor
 from doc_scraper import doc_loader
+from doc_scraper import adaptors
 
 from . import generic
 
@@ -180,7 +181,8 @@ class FileLoader(SourceType, generic.CmdLineInjectable):
         """Create an iterator returning the indicated documents."""
         for index, filename in enumerate(self.doc_filenames):
             parser = html_extractor.ToStructParser()
-            with open(filename, "r", encoding='utf-8') as file:
+            with adaptors.get_fs().open(filename, "r",
+                                        encoding='utf-8') as file:
                 parser.feed(file.read())
 
             document = parser.as_struct()
