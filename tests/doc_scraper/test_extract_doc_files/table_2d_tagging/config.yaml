@@ -189,12 +189,14 @@ transformations:
         extract_all:  '.elements[]'
         filters:
         - '.[0].tags.first_col_text != ""'
-        render: '{"key": $row_title[0], "value":{"name" :$name[0], "details": ($col_data | from_entries)}}'
+        render: '{"key": $row_title, "value":{"name" :$name, "details": ($col_data | from_entries)}}'
         nested:
           name:
+            first_item_only: True
             extract_all: .[] | select(.tags.content_for_col == "name")
             render: .tags.content_text
           row_title:
+            first_item_only: True
             extract_all: .[0]
             render: .tags.first_col_text
           col_data:

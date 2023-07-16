@@ -158,9 +158,10 @@ transformations:
     extract_all:  '.. | select(.tags?.top_bullet) | select(.tags?.in_scope)'
     validators:
     - '.type == "BulletItem"'
-    render: '{"name" :$name_value[0], "details": ($details | from_entries)}'
+    render: '{"name" :$name_value, "details": ($details | from_entries)}'
     nested:
       name_value:
+        first_item_only: True
         extract_all: '.elements[] | select(.tags.content_for_label)'
         render: '.text'
         validators:

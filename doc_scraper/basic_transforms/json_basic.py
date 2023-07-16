@@ -40,6 +40,13 @@ class JsonExtractionTransformConfig():
                               '"nested": $nested_types}')],
         })
 
+    first_item_only: bool = dataclasses.field(
+        default=False,
+        metadata={
+            'help_text': 'Only take the first item of the result.',
+            'help_samples': [('Default', False)],
+        })
+
     filters: Sequence[str] = dataclasses.field(
         default_factory=list,
         metadata={
@@ -131,6 +138,11 @@ class JsonExtractionTransformConfig():
         base_items = self._filter_progs.filter(base_items)
         base_items = [item for item in base_items if self._validate_item(item)]
         base_items = [self._render_output(item) for item in base_items]
+        if self.first_item_only:
+            if len(base_items) > 0:
+                return base_items[0]
+            else:
+                return None
         return base_items
 
     # pytype: enable=attribute-error

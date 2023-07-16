@@ -166,6 +166,8 @@ transformations:
                 # extract_all: '.. | select(.tags?.label)'  # Match all with tag "label"
             # Applied to each extracted item before output into a list.
             render: '{"the_text": .text?, "tag": $nested_tag, "nested": $nested_types}'
+            # Only take the first item of the result.
+            first_item_only: False  # Default
             # Only extracted items matching all filters remain.
             filters:
             -   '.tags?.label == "some_value"'

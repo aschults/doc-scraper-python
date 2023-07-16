@@ -42,6 +42,15 @@ class TestJsonExtractionConfig(unittest.TestCase):
         result = config.transform_items(DATA)
         self.assertEqual([10, 11], result)
 
+    def test_transform_items_first_only(self):
+        """Test first_item_only flag."""
+        config = json_basic.JsonExtractionTransformConfig(
+            extract_all='..|.x? | select(.)',
+            render='.v',
+            first_item_only=True)
+        result = config.transform_items(DATA)
+        self.assertEqual(10, result)
+
     def test_transform_items_no_match(self):
         """Test extraction with no match."""
         config = json_basic.JsonExtractionTransformConfig(
