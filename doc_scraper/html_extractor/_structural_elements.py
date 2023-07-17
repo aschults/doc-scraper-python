@@ -355,7 +355,7 @@ class DocContentFrame(_base.Frame):
             bullet_list = BulletListFrame(self.context, tag, attrs)
             self.elements.append(bullet_list)
             return bullet_list
-        if tag == 'a':
+        if tag in ('a', 'sup'):
             element = _base.DummyFrame(self.context, tag)
             return element
         return None

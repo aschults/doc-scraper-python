@@ -371,3 +371,14 @@ class DocContentTest(unittest.TestCase):
 
         actual: doc_struct.DocContent = content.to_struct()
         self.assertEqual(expected, actual)
+
+    def test_start_tag(self):
+        """Test simple case."""
+        context = _base.ParseContext()
+        content = _structural_elements.DocContentFrame(context, 'body',
+                                                       {'k': 'val'})
+
+        self.assertIsInstance(content.handle_start('sup', {}),
+                              _base.DummyFrame)
+        self.assertIsInstance(content.handle_start('a', {}),
+                              _base.DummyFrame)
