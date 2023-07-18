@@ -194,7 +194,7 @@ class TestFilterConversion(unittest.TestCase):
                         expected: Sequence[doc_struct.Element]):
         """Test multiple filtering scenarios."""
         converter = tags_basic.ElementFilterConverter(filter_func)
-        self.assertSameElements(expected, converter.convert(data))
+        self.assertSameElements(expected, converter.convert(data) or [])
 
 
 class TagUpdateTest(unittest.TestCase):
@@ -273,7 +273,6 @@ class TagUpdateTest(unittest.TestCase):
                 'd': '{none_value}',
             },
             remove=['a'],
-            ignore_errors=True,
         )
         element = doc_struct.Element(tags={'a': 'old'})
         self.assertEqual(
@@ -362,11 +361,12 @@ class TextMatchTest(unittest.TestCase):
             doc_struct.TextRun(text='abc '),
             doc_struct.TextRun(text='def'),
         ])
-        data2 = doc_struct.Section(heading=None, content=[
-            doc_struct.Paragraph(elements=[
-                doc_struct.TextRun(text='here')
+        data2 = doc_struct.Section(
+            heading=None,
+            content=[
+                doc_struct.Paragraph(
+                    elements=[doc_struct.TextRun(text='here')])
             ])
-        ])
         self.assertTrue(
             tags_basic.TagMatchConfig(
                 aggregated_text_regex=tags_basic.StringMatcher(

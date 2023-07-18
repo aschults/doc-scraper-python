@@ -590,6 +590,9 @@ DOC_HELP_TAG_UPDATE_CONFIG_SAMPLE = """
 class TagUpdateConfig():
     """Configuration for updating tags."""
 
+    class _NoneFoundException(Exception):
+        """Thrown in TagUpdateConfig to find None values in format()."""
+
     class _None():
         """Replacement for none in interpolation.
 
@@ -599,7 +602,7 @@ class TagUpdateConfig():
 
         def __str__(self):
             """Raise AttributeError."""
-            raise AttributeError('No rendering of None')
+            raise TagUpdateConfig._NoneFoundException('No rendering of None')
 
     add: Mapping[str,
                  str] = dataclasses.field(default_factory=dict,
@@ -641,6 +644,8 @@ class TagUpdateConfig():
         }
         try:
             return template.format(*args, **kwargs)
+        except TagUpdateConfig._NoneFoundException:
+            return None
         except (KeyError, IndexError, AttributeError) as exc:
             if self.ignore_errors:
                 return None
