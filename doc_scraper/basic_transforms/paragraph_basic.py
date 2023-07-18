@@ -212,8 +212,8 @@ class TagMergePolicy():
             second: doc_struct.ParagraphElement
     ) -> doc_struct.ParagraphElement:
         """Merge two elements, assuming they match."""
-        first_text = self._text_converter.convert(first)
-        second_text = self._text_converter.convert(second)
+        first_text = self._text_converter.convert(first) or ''
+        second_text = self._text_converter.convert(second) or ''
         merged_text = first_text + second_text
 
         if self.config.merge_as_text_run:

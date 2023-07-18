@@ -375,7 +375,9 @@ class ConverterBase(Generic[_O]):
     def _convert_text_line(self, element: TextLine) -> _O:
         """Convert a text line element."""
         converted_elements = [
-            self.convert(element2) for element2 in element.elements
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.elements)
+            if element3
         ]
         return self._convert_text_line_with_descendents(
             element, converted_elements)
@@ -388,7 +390,9 @@ class ConverterBase(Generic[_O]):
     def _convert_doc_content(self, element: DocContent) -> _O:
         """Convert a doc content element."""
         converted_elements = [
-            self.convert(element2) for element2 in element.elements
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.elements)
+            if element3
         ]
         return self._convert_doc_content_with_descentdents(
             element, converted_elements)
@@ -405,15 +409,16 @@ class ConverterBase(Generic[_O]):
             self.convert(element.content))
 
     def _convert_document_with_descendents(self, element: Document,
-                                           shared_data: _O, content: _O) -> _O:
+                                           shared_data: Optional[_O],
+                                           content: Optional[_O]) -> _O:
         """Convert a document with descendents already converted."""
         return self._convert_element(element)
 
     def _convert_table(self, element: Table) -> _O:
         """Convert a table."""
-        converted_elements = [
-            [self.convert(cell) for cell in row] for row in element.elements
-        ]
+        converted_elements = [[
+            cell2 for cell2 in (self.convert(cell) for cell in row) if cell2
+        ] for row in element.elements if row]
         return self._convert_table_with_descendents(element,
                                                     converted_elements)
 
@@ -425,7 +430,9 @@ class ConverterBase(Generic[_O]):
     def _convert_paragraph(self, element: Paragraph) -> _O:
         """Convert a paragraph."""
         converted_elements = [
-            self.convert(element2) for element2 in element.elements
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.elements)
+            if element3
         ]
         return self._convert_paragraph_with_descendents(
             element, converted_elements)
@@ -438,7 +445,9 @@ class ConverterBase(Generic[_O]):
     def _convert_notes_appendix(self, element: NotesAppendix) -> _O:
         """Convert the notes appendix."""
         converted_elements = [
-            self.convert(element2) for element2 in element.elements
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.elements)
+            if element3
         ]
         return self._convert_notes_appendix_with_descendents(
             element, converted_elements)
@@ -451,10 +460,14 @@ class ConverterBase(Generic[_O]):
     def _convert_bullet_item(self, element: BulletItem) -> _O:
         """Convert convert a bullet item."""
         converted_nested = [
-            self.convert(element2) for element2 in element.nested
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.nested)
+            if element3
         ]
         converted_elements = [
-            self.convert(element2) for element2 in element.elements
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.elements)
+            if element3
         ]
         return self._convert_bullet_item_with_descendents(
             element, converted_elements, converted_nested)
@@ -468,7 +481,9 @@ class ConverterBase(Generic[_O]):
     def _convert_bullet_list(self, element: BulletList) -> _O:
         """Convert a bullet list element."""
         converted_items = [
-            self.convert(element2) for element2 in element.items
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.items)
+            if element3
         ]
         return self._convert_bullet_list_with_descendents(
             element, converted_items)
@@ -484,7 +499,9 @@ class ConverterBase(Generic[_O]):
         if element.heading:
             converted_heading = self.convert(element.heading)
         converted_content = [
-            self.convert(element2) for element2 in element.content
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.content)
+            if element3 is not None
         ]
         return self._convert_section_with_descendents(element,
                                                       converted_heading,
@@ -500,7 +517,7 @@ class ConverterBase(Generic[_O]):
         """Convert the shared data element."""
         return self._convert_element(element)
 
-    def convert(self, element: Any) -> _O:  # noqa: C901
+    def convert(self, element: Any) -> Optional[_O]:  # noqa: C901
         """Convert any element.
 
         Delegate to specific conversion functions.
@@ -542,6 +559,8 @@ class ConverterBase(Generic[_O]):
             return self._convert_shared_data(element)
         if isinstance(element, Element):
             return self._convert_element(element)
+        if element is None:
+            return None
         else:
             tp = type(element)
             raise NotImplementedError(f'Unknown type {tp}')
@@ -679,7 +698,12 @@ class RawTextConverter(ConverterBase[str]):
 
     def _convert_text_line(self, element: TextLine) -> str:
         """Convert text lines, assuming each line already ends with newline."""
-        return "".join(self.convert(element2) for element2 in element.elements)
+        converted = [
+            element3 for element3 in (
+                self.convert(element2) for element2 in element.elements)
+            if element3 is not None
+        ]
+        return "".join(converted)
 
     def _convert_doc_content_with_descentdents(self, element: DocContent,
                                                elements: Sequence[str]) -> str:
@@ -687,9 +711,9 @@ class RawTextConverter(ConverterBase[str]):
         return "".join(_ensure_newline(element2) for element2 in elements)
 
     def _convert_document_with_descendents(self, element: Document,
-                                           shared_data: str,
-                                           content: str) -> str:
-        return content
+                                           shared_data: Optional[str],
+                                           content: Optional[str]) -> str:
+        return content or ''
 
     def _convert_table_with_descendents(
             self, element: Table, elements: Sequence[Sequence[str]]) -> str:

@@ -704,7 +704,7 @@ class RelationalMatchingConfig():
         filter_converter = tags_basic.ElementFilterConverter(_filter_func)
 
         matching_items = [
-            item for item in filter_converter.convert(element)
+            item for item in filter_converter.convert(element) or []
             if id(item) != id(element)
         ]
         if not matching_items:
@@ -875,6 +875,8 @@ class TextAggregationEvaluator(Evaluator, tags_basic.RegexReplacer):
             agg_text = _text_converter.convert(element.heading)
         else:
             agg_text = _text_converter.convert(element)
+        if agg_text is None:
+            return None
         return self.transform_text(agg_text)
 
 

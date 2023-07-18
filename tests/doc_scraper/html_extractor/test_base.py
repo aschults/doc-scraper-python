@@ -50,3 +50,17 @@ class NodeTest(unittest.TestCase):
         self.assertNotEqual(node, _base.Frame(context, {}, {'s': '111'}))
         self.assertNotEqual(node,
                             _base.Frame(context, {'k': 'val'}, {'s': '222'}))
+
+    def test_dummy_frame(self):
+        """Test tag handling in DummyFrame."""
+        context = _base.ParseContext()
+        node = _base.DummyFrame(context, 'blah')
+
+        subnode = node.handle_start('xxx', {})
+        if subnode is None:
+            self.fail()
+        self.assertIsInstance(subnode, _base.DummyFrame)
+
+        self.assertEqual(subnode, subnode.handle_end('xxx'))
+
+        self.assertEqual(node, node.handle_end('blah'))

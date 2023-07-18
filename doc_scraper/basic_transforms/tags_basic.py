@@ -92,11 +92,11 @@ class ElementFilterConverter(
         return self._filter(element, *elements, *elements)
 
     def _convert_document_with_descendents(
-            self, element: doc_struct.Document,
-            shared_data: Sequence[doc_struct.Element],
-            content: Sequence[doc_struct.Element]
+        self, element: doc_struct.Document,
+        shared_data: Optional[Sequence[doc_struct.Element]],
+        content: Optional[Sequence[doc_struct.Element]]
     ) -> Sequence[doc_struct.Element]:
-        return self._filter(element, *shared_data, *content)
+        return self._filter(element, *(shared_data or []), *(content or []))
 
     def _convert_notes_appendix_with_descendents(
         self, element: doc_struct.NotesAppendix,
@@ -519,8 +519,10 @@ class TagMatchConfig():
                     return False
 
         if self.aggregated_text_regex:
-            if not self.aggregated_text_regex.match(
-                    self._text_converter.convert(element)):
+            converted = self._text_converter.convert(element)
+            if converted is None:
+                return False
+            if not self.aggregated_text_regex.match(converted):
                 return False
 
         return True

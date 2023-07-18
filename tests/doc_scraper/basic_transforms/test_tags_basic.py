@@ -362,6 +362,11 @@ class TextMatchTest(unittest.TestCase):
             doc_struct.TextRun(text='abc '),
             doc_struct.TextRun(text='def'),
         ])
+        data2 = doc_struct.Section(heading=None, content=[
+            doc_struct.Paragraph(elements=[
+                doc_struct.TextRun(text='here')
+            ])
+        ])
         self.assertTrue(
             tags_basic.TagMatchConfig(
                 aggregated_text_regex=tags_basic.StringMatcher(
@@ -370,6 +375,10 @@ class TextMatchTest(unittest.TestCase):
             tags_basic.TagMatchConfig(
                 aggregated_text_regex=tags_basic.StringMatcher(
                     'abcXdef')).is_matching(data))
+        self.assertTrue(
+            tags_basic.TagMatchConfig(
+                aggregated_text_regex=tags_basic.StringMatcher(
+                    r'\s*here\s*')).is_matching(data2))
 
 
 class TestRegexReplace(unittest.TestCase):

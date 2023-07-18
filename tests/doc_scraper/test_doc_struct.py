@@ -91,7 +91,7 @@ class CommonFunctionsTest(unittest.TestCase):
                         'elements': [{
                             'text': 'xxx',
                             'type': 'TextRun'
-                        },],
+                        }],
                         'type': 'TextLine'
                     },
                 ],
@@ -220,6 +220,17 @@ class RawTextConversionTest(unittest.TestCase):
                     level=2, elements=[doc_struct.TextRun(text='xxx')]),
             ),
             'xxx\na\n\f',
+        ),
+        (
+            doc_struct.Section(
+                content=[
+                    doc_struct.Paragraph(elements=[
+                        doc_struct.TextRun(text='a'),
+                    ]),
+                ],
+                heading=None,
+            ),
+            '\na\n\f',
         ),
         (
             doc_struct.Document(

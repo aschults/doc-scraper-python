@@ -304,9 +304,10 @@ class TestRelationMatching(unittest.TestCase):
         result = tags_basic.TaggingTransform(config)(data)
 
         print(result)
-        changed = set(element.tags['id']
-                      for element in tags_basic.ElementFilterConverter(
-                          lambda element: 'x' in element.tags).convert(result))
+        changed = set(
+            element.tags['id']
+            for element in (tags_basic.ElementFilterConverter(
+                lambda element: 'x' in element.tags).convert(result) or []))
 
         self.assertEqual(expected, changed)
 
@@ -567,9 +568,10 @@ class TestRelationMatching(unittest.TestCase):
         result = tags_basic.TaggingTransform(config)(data)
 
         print(result)
-        changed = set(element.tags['id']
-                      for element in tags_basic.ElementFilterConverter(
-                          lambda element: 'x' in element.tags).convert(result))
+        changed = set(
+            element.tags['id']
+            for element in (tags_basic.ElementFilterConverter(
+                lambda element: 'x' in element.tags).convert(result) or []))
 
         self.assertEqual(expected, changed)
 
@@ -733,9 +735,10 @@ class TestRelationMatching(unittest.TestCase):
         result = tags_basic.TaggingTransform(config)(data)
 
         print(result)
-        changed = set(element.tags['id']
-                      for element in tags_basic.ElementFilterConverter(
-                          lambda element: 'x' in element.tags).convert(result))
+        changed = set(
+            element.tags['id']
+            for element in (tags_basic.ElementFilterConverter(
+                lambda element: 'x' in element.tags).convert(result) or []))
 
         self.assertEqual(expected, changed)
 
@@ -1221,9 +1224,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
             '33',
             '_{v}_',
             {
-                'v':
-                    tags_relation.JsonQueryEvaluator(
-                        json_query='null')
+                'v': tags_relation.JsonQueryEvaluator(json_query='null')
             },
             [],
         ),
@@ -1232,9 +1233,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
             '33',
             '_{v}_',
             {
-                'v':
-                    tags_relation.JsonQueryEvaluator(
-                        json_query='.tags.id')
+                'v': tags_relation.JsonQueryEvaluator(json_query='.tags.id')
             },
             [('33', '_33_')],
         ),
@@ -1245,7 +1244,7 @@ class TestRelativeTaggingTransform(unittest.TestCase):
             {
                 'v':
                     tags_relation.JsonQueryEvaluator(
-                        json_query='$root.tags.id')
+                        json_query='$root.tags.id',)
             },
             [('33', '_0_')],
         ),

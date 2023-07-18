@@ -118,6 +118,10 @@ class DummyFrame(Frame):
         super().__init__(context)
         self.tag = tag
 
+    def handle_start(self, tag: str, attrs: KeyValueType) -> Frame | None:
+        """Handle new tags inside DummyFrame."""
+        return DummyFrame(self.context, tag)
+
     def handle_end(self, tag: str) -> Optional[Frame]:
         """Handle end tag of a and span tags."""
         if tag == self.tag:
