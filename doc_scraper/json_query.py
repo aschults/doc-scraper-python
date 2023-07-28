@@ -1,17 +1,21 @@
 """Query support for JSON data (wrapper around jq)."""
 
 from typing import Any, Optional, Mapping, Sequence, List
+import re
+
 import jq
 
 
 class JsonException(Exception):
     """Exception to wrap around the jq generated ones."""
 
-    def __init__(self, reason: str, prog: str) -> None:
+    def __init__(self, reason: str, prog: str, preamble: str = '') -> None:
         """Create an instance."""
         super().__init__(
-            f'Exception in JSON query: {reason} Original string: {prog!r}')
+            f'Exception in JSON query: {reason} Original string: ' +
+            '{preamble!r} {prog!r}')
         self.prog = prog
+        self.preamble = preamble
 
 
 class _JqProgramWithInput():
@@ -68,43 +72,85 @@ class NoOutput():
 class Query():
     """Execute a query in a JSON object and return results."""
 
-    def __init__(self, query: str, **kwargs: Any) -> None:
+    # If matching, we need to add semicolon at end.
+    PREAMBLE_NEED_SEMICOLON_RE = re.compile(r'[^;\s]\s*$', re.S)
+
+    def __init__(self,
+                 query: str,
+                 preamble: str = '',
+                 var_names: Optional[Sequence[str]] = None,
+                 **kwargs: Any) -> None:
         """Create an instance.
 
         Args:
             query: The query, as jq program.
-            kwargs: Variable definitions for the jq program.
+            preamble: Additional definitions that go before the query.
+            var_names: List of variable names to set with set_vars().
+            kwargs: Global variable definitions for the jq program.
         """
         self._query = query
-        self._vars = kwargs
-        try:
-            self._compiled_query = _jq_compile(query, args=self._vars)
-        except Exception as exc:
-            raise JsonException('Compiling', query) from exc
 
-    def set_vars(self, **kwargs: Any):
-        """Update the variables of the query."""
-        self._vars = kwargs
-        try:
-            self._compiled_query = _jq_compile(self._query, args=self._vars)
-        except Exception as exc:
-            raise JsonException('Compiling', self._query) from exc
+        if self.PREAMBLE_NEED_SEMICOLON_RE.search(preamble):
+            preamble = f'{preamble};'
+        self._preamble = preamble
+        self._var_names = var_names or []
+        var_str = ''.join(f'${name}, ' for name in self._var_names)
+        vars_unpack_prefix = f"""
+            . as {{
+                "_vars": [{var_str} $__null_dummy__],
+                "_content": $__content__
+            }} | $__content__
+        """
+        self._wrapped_query = f"""
+            {self._preamble}
+            {vars_unpack_prefix}
+            |
+            ({query})
+        """
 
-    def get_all(self, input_: Any) -> Sequence[Any]:
+        try:
+            self._compiled_query = _jq_compile(self._wrapped_query,
+                                               args=kwargs)
+        except Exception as exc:
+            raise JsonException('Compiling', query, preamble) from exc
+
+    def get_all(
+        self,
+        input_: Any,
+        **kwargs: Any,
+    ) -> Sequence[Any]:
         """Return all matching JSON items as sequence."""
+        var_values = [kwargs.get(name) for name in self._var_names]
+        remaining_keys = set(kwargs.keys()) - set(self._var_names)
+        if remaining_keys:
+            raise ValueError(f'Bad variable assignments: {remaining_keys!r}')
+
         try:
-            return self._compiled_query.input(value=input_).all()
+            wrapped_input = {
+                '_vars': var_values,
+                '_content': input_,
+            }
+            return self._compiled_query.input(value=wrapped_input).all()
         except Exception as exc:
             raise JsonException('Query', self._query) from exc
 
-    def get_first(self, input_: Any) -> Any | NoOutput:
+    def get_first(self, input_: Any, **kwargs: Any) -> Any | NoOutput:
         """Return the first matching JSON item.
 
         Returns:
             The JSON item or an instance of NoOutput if nothing was found.
         """
+        var_values = [kwargs.get(name) for name in self._var_names]
+        remaining_keys = set(kwargs.keys()) - set(self._var_names)
+        if remaining_keys:
+            raise ValueError(f'Bad variable assignments: {remaining_keys!r}')
+
         try:
-            return self._compiled_query.input(value=input_).first()
+            wrapped_input = {
+                '_vars': var_values,
+                '_content': input_,
+            }
+            return self._compiled_query.input(value=wrapped_input).first()
         except StopIteration:
             return NoOutput()
         except Exception as exc:
@@ -116,13 +162,16 @@ class Query():
 
     def __repr__(self) -> str:
         """Convert to representation."""
-        return f'Query({self._query!r}, vars={self._vars!r})'
+        return (f'Query({self._query!r}, preamble={self._preamble!r}, ' +
+                f'var_names={self._var_names!r})')
 
     def __eq__(self, other: object) -> bool:
         """Test if other object is equal."""
         if not isinstance(other, Query):
             return False
-        return self._query == other._query and self._vars == other._vars
+        return (self._query == other._query and
+                self._var_names == other._var_names and
+                self._preamble == other._preamble)
 
 
 def is_output(data: Any | NoOutput) -> bool:

@@ -186,6 +186,47 @@ class TestFilterConversion(unittest.TestCase):
                 doc_struct.TextRun(text='another text')
             ],
         ),
+        (
+            "Document with matching descendents, both matching",
+            _is_paragraph_or_text_run,
+            doc_struct.Document(
+                shared_data=doc_struct.SharedData(),
+                content=doc_struct.DocContent(elements=[
+                    doc_struct.Paragraph(
+                        elements=[doc_struct.TextRun(text='another text')])
+                ])),
+            [
+                doc_struct.Paragraph(
+                    elements=[doc_struct.TextRun(text='another text')]),
+                doc_struct.TextRun(text='another text')
+            ],
+        ),
+        (
+            "Notes appendix with matching descendents, both matching",
+            _is_paragraph_or_text_run,
+            doc_struct.NotesAppendix(elements=[
+                doc_struct.Paragraph(
+                    elements=[doc_struct.TextRun(text='another text')]),
+            ]),
+            [
+                doc_struct.Paragraph(
+                    elements=[doc_struct.TextRun(text='another text')]),
+                doc_struct.TextRun(text='another text')
+            ],
+        ),
+        (
+            "Notes appendix with matching descendents, text run",
+            _is_text_run,
+            doc_struct.BulletList(items=[
+                doc_struct.BulletItem(
+                    left_offset=0,
+                    list_type='ul',
+                    elements=[doc_struct.TextRun(text='another text')]),
+            ]),
+            [
+                doc_struct.TextRun(text='another text'),
+            ],
+        ),
     ])
     # pylint: disable=unused-argument
     def test_conversion(self, name: str,

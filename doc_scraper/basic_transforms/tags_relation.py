@@ -886,7 +886,8 @@ class JsonQueryEvaluator(Evaluator):
 
     def __post_init__(self):
         """Compile the query after construction."""
-        self._query_obj = json_query.Query(self.json_query, root=None)
+        self._query_prog = json_query.Query(self.json_query,
+                                            var_names=['root'])
         self._root_element: Optional[doc_struct.Element] = None
 
     json_query: str = dataclasses.field(
@@ -901,12 +902,8 @@ class JsonQueryEvaluator(Evaluator):
         if not path:
             raise ValueError('Need path for evaluator')
 
-        root = path[0]
-        if id(root) != id(self._root_element):
-            self._query_obj = json_query.Query(self.json_query,
-                                               root=doc_struct.as_dict(root))
-
-        result = self._query_obj.get_first(doc_struct.as_dict(element))
+        result = self._query_prog.get_first(doc_struct.as_dict(element),
+                                            root=doc_struct.as_dict(path[0]))
         if not json_query.is_output(result):
             return None
         return result

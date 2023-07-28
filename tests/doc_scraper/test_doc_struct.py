@@ -233,6 +233,17 @@ class RawTextConversionTest(unittest.TestCase):
             '\na\n\f',
         ),
         (
+            doc_struct.Section(
+                content=[
+                    doc_struct.Paragraph(elements=[
+                        doc_struct.TextRun(text='a'),
+                    ]),
+                ],
+                heading=None,
+            ),
+            '\na\n\f',
+        ),
+        (
             doc_struct.Document(
                 shared_data=doc_struct.SharedData(),
                 content=doc_struct.DocContent(elements=[

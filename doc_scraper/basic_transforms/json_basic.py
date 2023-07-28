@@ -85,20 +85,23 @@ class JsonExtractionTransformConfig():
             }]
         })
 
-    def _add_preamble(self, query: str) -> str:
-        """Add the preamble to queries for convenience."""
-        return f'{self.preamble}\n{query}'
-
     # pytype: disable=attribute-error
+
+    def _build_query(self, filter_str: str) -> json_query.Query:
+        """Build a query including preamble."""
+        return json_query.Query(filter_str, preamble=self.preamble)
 
     def __post_init__(self):
         """Turn all query strings into query objects."""
         self._filter_progs = json_query.Filter(
-            *map(self._add_preamble, self.filters))
+            *map(self._build_query, self.filters))
         self._valid_progs = json_query.Filter(
-            *map(self._add_preamble, self.validators))
-        self._base_prog = json_query.Query(
-            self._add_preamble(self.extract_all),)
+            *map(self._build_query, self.validators))
+        self._base_prog = self._build_query(self.extract_all)
+        variables = list(self.nested.keys())
+        self._render_prog = json_query.Query(self.render,
+                                             preamble=self.preamble,
+                                             var_names=variables)
 
     def _validate_item(self, data: Any) -> bool:
         """Find items not matching the validatiors and log them."""
@@ -114,12 +117,10 @@ class JsonExtractionTransformConfig():
             name: nested_config.transform_items(item)
             for name, nested_config in self.nested.items()
         }
-        jq_output_prog = json_query.Query(self._add_preamble(self.render),
-                                          **nested_extracted)
-        output = jq_output_prog.get_first(item)
+        output = self._render_prog.get_first(item, **nested_extracted)
         if not json_query.is_output(output):
-            logging.warning('No value for expr %r on item %r', jq_output_prog,
-                            item)
+            logging.warning('No value for expr %r on item %r',
+                            self._render_prog, item)
             output = None
         return output
 

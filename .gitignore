@@ -10,3 +10,4 @@ doc_scraper.egg-info
 .coverage
 coverage.lcov
 coverage.xml
+prof/
